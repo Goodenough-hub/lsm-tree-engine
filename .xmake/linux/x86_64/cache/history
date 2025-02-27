@@ -1,0 +1,28 @@
+{
+    cmdlines = {
+        "xmake ",
+        "xmake ",
+        "xmake ",
+        "xmake ",
+        "xmake ",
+        "xmake ",
+        "xmake ",
+        "xmake ",
+        "xmake ",
+        "xmake lua private.xrepo install gtest",
+        "xmake ",
+        "xmake ",
+        "xmake ",
+        "xmake ",
+        "xmake ",
+        "xmake ",
+        "xmake ",
+        "xmake clean",
+        "xmake ",
+        "xmake ",
+        "xmake ",
+        "xmake run",
+        "xmake clean",
+        "xmake "
+    }
+}
