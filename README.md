@@ -2,9 +2,9 @@
 
 ## day1
 实现调表：
-    - put
-    - get
-    - remove
+- put
+- get
+- remove
 
 ## day2
 对调表封装，memtable
