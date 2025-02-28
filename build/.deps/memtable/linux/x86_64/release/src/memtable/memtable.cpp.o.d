@@ -1,5 +1,5 @@
 {
-    depfiles = "test_skiplist.o: test/test_skiplist.cpp  test/../include/skiplist/skiplist.h\
+    depfiles = "memtable.o: src/memtable/memtable.cpp  src/memtable/../../include/memtable/memtable.h  src/memtable/../../include/memtable/../skiplist/skiplist.h\
 ",
     depfiles_format = "gcc",
     values = {
@@ -11,12 +11,10 @@
             "-O3",
             "-std=c++20",
             "-Iinclude",
-            "-isystem",
-            "/home/fangming/.xmake/packages/g/gtest/v1.15.2/aea99fd8f63a47f0a0b9fe284bee1bfa/include",
             "-DNDEBUG"
         }
     },
     files = {
-        "test/test_skiplist.cpp"
+        "src/memtable/memtable.cpp"
     }
 }

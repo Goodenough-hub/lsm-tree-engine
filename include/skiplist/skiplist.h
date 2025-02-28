@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <shared_mutex>
 
 // 跳表的节点
 struct SkipListNode {
@@ -18,8 +19,9 @@ struct SkipListNode {
     void set_backward(int level, std::shared_ptr<SkipListNode> node) {
       backward[level] = std::weak_ptr<SkipListNode>(node);
     }
-  };
+};
 
+class SkipListIterator;
 class SkipList {
 private:
     std::shared_ptr<SkipListNode> head; // 跳表的头节点
@@ -34,4 +36,28 @@ public:
     void put(const std::string &key, const std::string &value);
     std::optional<std::string> get(const std::string &key);
     void remove(const std::string &key);
+    void clear();
+
+    // begin() 和 end() 迭代器
+    SkipListIterator begin();
+    SkipListIterator end();
+};
+
+class SkipListIterator {
+private:
+    std::shared_ptr<SkipListNode> current;
+
+public:
+    SkipListIterator(std::shared_ptr<SkipListNode> node) : current(node){};
+    
+    SkipListIterator &operator++(); // 前置自增
+    SkipListIterator operator++(int); // 后置自增
+    bool operator==(const SkipListIterator &other) const;
+    bool operator!=(const SkipListIterator &other) const;
+
+    std::string get_key() const;
+    std::string get_value() const;
+
+    bool is_valid() const;
+    bool is_end() const;
 };

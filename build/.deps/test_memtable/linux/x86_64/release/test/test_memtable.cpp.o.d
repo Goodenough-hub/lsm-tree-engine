@@ -1,5 +1,5 @@
 {
-    depfiles = "test_skiplist.o: test/test_skiplist.cpp  test/../include/skiplist/skiplist.h\
+    depfiles = "test_memtable.o: test/test_memtable.cpp  test/../include/memtable/memtable.h  test/../include/memtable/../skiplist/skiplist.h\
 ",
     depfiles_format = "gcc",
     values = {
@@ -17,6 +17,6 @@
         }
     },
     files = {
-        "test/test_skiplist.cpp"
+        "test/test_memtable.cpp"
     }
 }

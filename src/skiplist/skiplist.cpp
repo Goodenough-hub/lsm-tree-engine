@@ -1,7 +1,11 @@
 #include "../../include/skiplist/skiplist.h"
+#include <cstddef>
 #include <cstdlib>
 #include <random>
 #include <stdexcept>
+#include <tuple>
+
+/*********************** SkipList *******************/
 
 // 构造函数
 SkipList::SkipList(int max_level) {
@@ -24,9 +28,9 @@ int SkipList::random_level() {
 }
 
 void SkipList::put(const std::string &key, const std::string &value) {
-  if (value.empty()) {
-    throw std::runtime_error("value cannot be empty"); // 值为空，抛出异常
-  }
+//   if (value.empty()) {
+//     throw std::runtime_error("value cannot be empty"); // 值为空，抛出异常
+//   }
 
   //   标记当前的节点
   //   初始化当前节点为头节点 head，用于遍历跳表
@@ -121,25 +125,87 @@ void SkipList::remove(const std::string &key) {
     while (current_level > 1 && head->forward[current_level - 1] == nullptr) {
       current_level--;
     }
-  }
+}
   
-  std::optional<std::string> SkipList::get(const std::string &key) {
+std::optional<std::string> SkipList::get(const std::string &key) {
     auto current = head;
-  
+
     // 从高层进行查找
     for (int i = current->forward.size() - 1; i >= 0; i--) {
-      while (current->forward[i] && current->forward[i]->key < key) {
+        while (current->forward[i] && current->forward[i]->key < key) {
         current = current->forward[i];
-      }
+        }
     }
-  
+
     // 移动到最底层
     current = current->forward[0];
     if (current && current->key == key) {
-      return current->value;
+        return current->value;
     } else {
-      return std::nullopt;
+        return std::nullopt;
     }
-  
+
     return std::nullopt;
-  }
+}
+
+void SkipList::clear()
+{
+    head = std::make_shared<SkipListNode>("", "", max_level);
+    size_bytes = 0;
+}
+
+SkipListIterator SkipList::begin()
+{
+    return SkipListIterator(head->forward[0]);
+}
+
+SkipListIterator SkipList::end()
+{
+    return SkipListIterator(nullptr);
+}
+
+/*********************** SkipListIterator *******************/
+SkipListIterator& SkipListIterator::operator++()
+{
+    if(current) 
+    {
+        current = current->forward[0];
+    }
+    return *this;
+}
+
+SkipListIterator SkipListIterator::operator++(int)
+{
+    SkipListIterator temp = *this;
+    ++*this;
+    return temp;
+}
+
+bool SkipListIterator::operator==(const SkipListIterator &other) const
+{
+    return current == other.current;
+}
+bool SkipListIterator::operator!=(const SkipListIterator &other) const
+{
+    return current != other.current;
+}
+
+std::string SkipListIterator::get_key() const
+{
+    return current->key;
+}
+std::string SkipListIterator::get_value() const
+{
+    return current->value;
+}
+
+bool SkipListIterator::is_valid() const
+{
+    return current != nullptr;
+}
+
+bool SkipListIterator::is_end() const
+{
+    return current == nullptr;
+}
+

@@ -9,11 +9,24 @@ add_requires("gtest")
 target("skiplist")
     set_kind("static") -- 静态库
     add_files("src/skiplist/*.cpp")
-    add_includedirs("src/skiplist", {public = true})
+    add_includedirs("include", {public = true})
+
+target("memtable")
+    set_kind("static") -- 静态库
+    add_deps("skiplist")
+    add_files("src/memtable/*.cpp")
+    add_includedirs("include", {public = true})
 
 target("test_skiplist")
     set_kind("binary")
     set_group("tests")
     add_files("test/test_skiplist.cpp")
     add_deps("skiplist")
+    add_packages("gtest")
+
+target("test_memtable")
+    set_kind("binary")
+    set_group("tests")
+    add_files("test/test_memtable.cpp")
+    add_deps("memtable")
     add_packages("gtest")

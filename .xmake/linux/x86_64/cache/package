@@ -1,21 +1,21 @@
 {
     gtest = {
         version = "v1.15.2",
-        links = {
-            "gtest",
-            "gmock"
-        },
-        syslinks = "pthread",
-        linkdirs = "/home/fangming/.xmake/packages/g/gtest/v1.15.2/aea99fd8f63a47f0a0b9fe284bee1bfa/lib",
-        __enabled = true,
+        static = true,
         sysincludedirs = "/home/fangming/.xmake/packages/g/gtest/v1.15.2/aea99fd8f63a47f0a0b9fe284bee1bfa/include",
         libfiles = {
             "/home/fangming/.xmake/packages/g/gtest/v1.15.2/aea99fd8f63a47f0a0b9fe284bee1bfa/lib/libgtest.a",
             "/home/fangming/.xmake/packages/g/gtest/v1.15.2/aea99fd8f63a47f0a0b9fe284bee1bfa/lib/libgmock.a"
         },
-        __requirestr = "gtest",
-        static = true,
         installdir = "/home/fangming/.xmake/packages/g/gtest/v1.15.2/aea99fd8f63a47f0a0b9fe284bee1bfa",
-        license = "BSD-3"
+        links = {
+            "gtest",
+            "gmock"
+        },
+        __requirestr = "gtest",
+        linkdirs = "/home/fangming/.xmake/packages/g/gtest/v1.15.2/aea99fd8f63a47f0a0b9fe284bee1bfa/lib",
+        license = "BSD-3",
+        __enabled = true,
+        syslinks = "pthread"
     }
 }
