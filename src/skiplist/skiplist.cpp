@@ -28,10 +28,10 @@ int SkipList::random_level() {
 }
 
 bool SkipList::should_update_level() {
-  static std::random_device rd;
-  static std::mt19937 gen(rd());
-  static std::uniform_real_distribution<> dis(0.0, 1.0);
-  return dis(gen) < 0.5; // 50% 的概率
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<> dis(0, 1);
+  return dis(gen) == 1; // 50% 的概率；1表示要更新，0表示不需要更新
 }
 
 void SkipList::put(const std::string &key, const std::string &value) {

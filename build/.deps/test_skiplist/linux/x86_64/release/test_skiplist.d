@@ -1,4 +1,8 @@
 {
+    files = {
+        "build/.objs/test_skiplist/linux/x86_64/release/test/test_skiplist.cpp.o",
+        "build/linux/x86_64/release/libskiplist.a"
+    },
     values = {
         "/usr/bin/g++",
         {
@@ -11,9 +15,5 @@
             "-lskiplist",
             "-lpthread"
         }
-    },
-    files = {
-        "build/.objs/test_skiplist/linux/x86_64/release/test/test_skiplist.cpp.o",
-        "build/linux/x86_64/release/libskiplist.a"
     }
 }
