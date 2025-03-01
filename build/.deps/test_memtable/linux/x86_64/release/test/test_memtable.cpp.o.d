@@ -3,6 +3,8 @@
     files = {
         "test/test_memtable.cpp"
     },
+    depfiles = "build/.objs/test_memtable/linux/x86_64/release/test/test_memtable.cpp.o:  test/test_memtable.cpp test/../include/memtable/memtable.h  test/../include/memtable/../skiplist/skiplist.h\
+",
     values = {
         "/usr/bin/gcc",
         {
@@ -16,7 +18,5 @@
             "/home/fangming/.xmake/packages/g/gtest/v1.15.2/aea99fd8f63a47f0a0b9fe284bee1bfa/include",
             "-DNDEBUG"
         }
-    },
-    depfiles = "test_memtable.o: test/test_memtable.cpp  test/../include/memtable/memtable.h  test/../include/memtable/../skiplist/skiplist.h\
-"
+    }
 }

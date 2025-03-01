@@ -13,4 +13,9 @@ skiplist迭代器
 - 一个list，frozen_tables
 
 ## day3
+
+memtable并发控制：两把锁
+- 不加锁的函数
+- 大批量数据处理的函数
+
 block编码
