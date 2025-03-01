@@ -4,6 +4,8 @@
 #include <vector>
 #include <optional>
 #include <shared_mutex>
+#include <cstdlib>
+#include <random>
 
 // 跳表的节点
 struct SkipListNode {
@@ -29,8 +31,12 @@ private:
     int current_level;                  // 当前跳表的层数
     size_t size_bytes;
 
+    std::random_device rd;
+    std::uniform_int_distribution<> dis_01;
+    std::uniform_int_distribution<> dis_level;
+    std::mt19937 gen;
+
     int random_level(); // 随机生成节点的层数
-    bool should_update_level(); // 随机数生成，判断是否更新update
 
 public:
     SkipList(int max_level = 16); // 默认的最大层数为16

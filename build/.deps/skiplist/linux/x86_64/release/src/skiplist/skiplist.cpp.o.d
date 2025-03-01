@@ -1,5 +1,4 @@
 {
-    depfiles_format = "gcc",
     values = {
         "/usr/bin/gcc",
         {
@@ -12,6 +11,7 @@
             "-DNDEBUG"
         }
     },
+    depfiles_format = "gcc",
     files = {
         "src/skiplist/skiplist.cpp"
     },

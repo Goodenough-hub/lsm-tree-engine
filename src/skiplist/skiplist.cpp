@@ -1,7 +1,5 @@
 #include "../../include/skiplist/skiplist.h"
 #include <cstddef>
-#include <cstdlib>
-#include <random>
 #include <stdexcept>
 #include <tuple>
 
@@ -12,26 +10,21 @@ SkipList::SkipList(int max_level) {
   this->max_level = max_level;
   this->head = std::make_shared<SkipListNode>("", "", max_level); // 创建头节点
   this->current_level = 1;
+
+  // 随机数
+  this->dis_01 = std::uniform_int_distribution<>(0, 1);
+  this->dis_level = std::uniform_int_distribution<>(0, (1 << max_level) - 1);
+  this->gen = std::mt19937(this->rd());
 }
 
 int SkipList::random_level() {
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_int_distribution<> dis(0, 1);
   int level = 1;
   // 通过抛硬币的方式生成随机层数
   // 每一次抛硬币都有50%的概率增加一层
-  while (dis(gen) && level < max_level) { // 执行次数：[0, max_level - 1]
+  while (dis_01(gen) && level < max_level) { // 执行次数：[0, max_level - 1]
     level++;
   }
   return level; // [1, max_level]
-}
-
-bool SkipList::should_update_level() {
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_int_distribution<> dis(0, 1);
-  return dis(gen) == 1; // 50% 的概率；1表示要更新，0表示不需要更新
 }
 
 void SkipList::put(const std::string &key, const std::string &value) {
@@ -47,7 +40,7 @@ void SkipList::put(const std::string &key, const std::string &value) {
   std::vector<std::shared_ptr<SkipListNode>> update(max_level, nullptr);
 
   // 从最高层开始向下遍历，找到每一层中小于给定 key 的最大节点，并将其记录到 update 中。
-  for (int i = current_level; i >= 0; i--) {
+  for (int i = current_level - 1; i >= 0; i--) {
     while (current->forward[i] && current->forward[i]->key < key) {
       current = current->forward[i];
     }
@@ -65,38 +58,41 @@ void SkipList::put(const std::string &key, const std::string &value) {
   }
 
   //   value不存在则需要创建
-  int new_level = random_level();
-  if (new_level > current_level) {
-    for (int i = current_level; i < new_level; ++i) {
-      update[i] = head;
-    }
-    current_level = new_level;
+  int new_level = std::max(random_level(), current_level);
+  for (int i = current_level; i < new_level; ++i) {
+    update[i] = head;
   }
 
   auto new_node = std::make_shared<SkipListNode>(key, value, new_level);
   size_bytes += new_node->key.size() + new_node->value.size();
 
-  // 更新各层的指针
+  // 三种状态的update
   // 第0层一定更新
-  new_node->forward[0] = update[0]->forward[0];
-  update[0]->forward[0] = new_node;
-  // 从第一层开始概率更新
-  for (int i = 1; i < new_level; ++i) {
-    if(should_update_level())
+  // 如果创建了新的层级，所有层级都更新
+  // 每次50%的概率更新，某层不更新则中断更新
+  int radn_bits = dis_level(gen);
+  for (int i = 0; i < new_level; ++i) {
+    bool is_update = false;
+    if(i== 0 || (new_level > current_level) || (radn_bits & (1 << i)))
     {
+      is_update = true; // 需要更新
+    }
+    if(is_update)
+    {
+      // 更新forward与backward
       new_node->forward[i] = update[i]->forward[i];
+      if(new_node->forward[i])
+      {
+        new_node->forward[i]->set_backward(i, new_node);
+      }
+      
       update[i]->forward[i] = new_node;
+      new_node->set_backward(i, update[i]);
     }
     else break; // 某一层不需要更新，则停止更新更高层
   }
 
-  // 更新backward指针
-  for (int i = 0; i < new_level; ++i) {
-    if (new_node->forward[i]) {
-      new_node->forward[i]->set_backward(i, new_node);
-    }
-    new_node->set_backward(i, update[i]);
-  }
+  current_level = new_level; // 更新当前的层数
 }
 
 void SkipList::remove(const std::string &key) {

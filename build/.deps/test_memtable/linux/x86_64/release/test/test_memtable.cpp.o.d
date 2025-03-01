@@ -1,7 +1,8 @@
 {
     depfiles_format = "gcc",
-    depfiles = "test_memtable.o: test/test_memtable.cpp  test/../include/memtable/memtable.h  test/../include/memtable/../skiplist/skiplist.h\
-",
+    files = {
+        "test/test_memtable.cpp"
+    },
     values = {
         "/usr/bin/gcc",
         {
@@ -16,7 +17,6 @@
             "-DNDEBUG"
         }
     },
-    files = {
-        "test/test_memtable.cpp"
-    }
+    depfiles = "test_memtable.o: test/test_memtable.cpp  test/../include/memtable/memtable.h  test/../include/memtable/../skiplist/skiplist.h\
+"
 }

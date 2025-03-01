@@ -1,7 +1,7 @@
 {
-    depfiles_format = "gcc",
-    depfiles = "test_skiplist.o: test/test_skiplist.cpp  test/../include/skiplist/skiplist.h\
-",
+    files = {
+        "test/test_skiplist.cpp"
+    },
     values = {
         "/usr/bin/gcc",
         {
@@ -16,7 +16,7 @@
             "-DNDEBUG"
         }
     },
-    files = {
-        "test/test_skiplist.cpp"
-    }
+    depfiles_format = "gcc",
+    depfiles = "test_skiplist.o: test/test_skiplist.cpp  test/../include/skiplist/skiplist.h\
+"
 }
