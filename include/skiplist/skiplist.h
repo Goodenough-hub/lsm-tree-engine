@@ -30,6 +30,7 @@ private:
     size_t size_bytes;
 
     int random_level(); // 随机生成节点的层数
+    bool should_update_level(); // 随机数生成，判断是否更新update
 
 public:
     SkipList(int max_level = 16); // 默认的最大层数为16

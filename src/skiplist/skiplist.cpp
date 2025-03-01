@@ -27,6 +27,13 @@ int SkipList::random_level() {
   return level; // [1, max_level]
 }
 
+bool SkipList::should_update_level() {
+  static std::random_device rd;
+  static std::mt19937 gen(rd());
+  static std::uniform_real_distribution<> dis(0.0, 1.0);
+  return dis(gen) < 0.5; // 50% 的概率
+}
+
 void SkipList::put(const std::string &key, const std::string &value) {
 //   if (value.empty()) {
 //     throw std::runtime_error("value cannot be empty"); // 值为空，抛出异常
@@ -70,9 +77,17 @@ void SkipList::put(const std::string &key, const std::string &value) {
   size_bytes += new_node->key.size() + new_node->value.size();
 
   // 更新各层的指针
-  for (int i = 0; i < new_level; ++i) {
-    new_node->forward[i] = update[i]->forward[i];
-    update[i]->forward[i] = new_node;
+  // 第0层一定更新
+  new_node->forward[0] = update[0]->forward[0];
+  update[0]->forward[0] = new_node;
+  // 从第一层开始概率更新
+  for (int i = 1; i < new_level; ++i) {
+    if(should_update_level())
+    {
+      new_node->forward[i] = update[i]->forward[i];
+      update[i]->forward[i] = new_node;
+    }
+    else break; // 某一层不需要更新，则停止更新更高层
   }
 
   // 更新backward指针

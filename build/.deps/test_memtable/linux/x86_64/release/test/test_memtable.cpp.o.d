@@ -1,7 +1,7 @@
 {
+    depfiles_format = "gcc",
     depfiles = "test_memtable.o: test/test_memtable.cpp  test/../include/memtable/memtable.h  test/../include/memtable/../skiplist/skiplist.h\
 ",
-    depfiles_format = "gcc",
     values = {
         "/usr/bin/gcc",
         {

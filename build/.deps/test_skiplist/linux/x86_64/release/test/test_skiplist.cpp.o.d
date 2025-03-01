@@ -1,7 +1,7 @@
 {
+    depfiles_format = "gcc",
     depfiles = "test_skiplist.o: test/test_skiplist.cpp  test/../include/skiplist/skiplist.h\
 ",
-    depfiles_format = "gcc",
     values = {
         "/usr/bin/gcc",
         {
