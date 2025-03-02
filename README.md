@@ -19,3 +19,7 @@ memtable并发控制：两把锁
 - 大批量数据处理的函数
 
 block编码
+
+## day4
+block & sst编码
+SSTbuilder用于构建SSTable

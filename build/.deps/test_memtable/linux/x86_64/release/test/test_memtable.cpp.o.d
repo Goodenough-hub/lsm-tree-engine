@@ -1,9 +1,9 @@
 {
-    depfiles_format = "gcc",
     files = {
         "test/test_memtable.cpp"
     },
-    depfiles = "build/.objs/test_memtable/linux/x86_64/release/test/test_memtable.cpp.o:  test/test_memtable.cpp test/../include/memtable/memtable.h  test/../include/memtable/../skiplist/skiplist.h\
+    depfiles_format = "gcc",
+    depfiles = "test_memtable.o: test/test_memtable.cpp  test/../include/memtable/memtable.h  test/../include/memtable/../skiplist/skiplist.h\
 ",
     values = {
         "/usr/bin/gcc",
