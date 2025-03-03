@@ -67,10 +67,14 @@ size_t Block::cur_size() const
     return data.size() + offsets.size() * sizeof(uint16_t) + sizeof(uint16_t);
 }
 
+bool Block::is_empty() const
+{
+    return offsets.empty();
+}
+
 bool Block::add_entry(const std::string key, const std::string &value)
 {
-    if(cur_size() + key.size() + value.size()  + 3 * sizeof(uint16_t) > capacity
-        || !offsets.empty())
+    if(cur_size() + key.size() + value.size()  + 3 * sizeof(uint16_t) > capacity)
     {
         return false;
     }

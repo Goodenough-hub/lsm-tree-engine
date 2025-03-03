@@ -25,6 +25,7 @@ public:
     Block(size_t capacity);
 
     size_t cur_size() const;
+    bool is_empty() const;
 
     std::vector<uint8_t> encode();
     static std::shared_ptr<Block> decode(const std::vector<uint8_t> &encode);

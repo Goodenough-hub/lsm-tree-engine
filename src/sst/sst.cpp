@@ -20,9 +20,66 @@ void SSTBuilder::add(const std::string &key, const std::string &value)
         return;
     }
     
-    finish_block();
+    finish_block(); // 把当前的block写入data中
 
+    // 全新的block
     block.add_entry(key, value);
     first_key = key;
     last_key = key;
+}
+
+void SSTBuilder::finish_block()
+{
+    // 将block编码到data中
+    auto old_block = std::move(this->block); // 移动语义
+    auto encoded_block = old_block.encode();
+
+    // 把block的原数据写入
+    meta_entries.emplace_back(data.size(), first_key, last_key);
+
+    // 计算哈希校验值
+    auto block_hash = static_cast<uint32_t>(std::hash<std::string_view>{}(
+        std::string_view(reinterpret_cast<char*>(
+            encoded_block.data()), encoded_block.size())));
+    
+    // 预分配空间并添加数据
+    data.reserve(data.size() + encoded_block.size() + sizeof(uint32_t)); // uint_32是哈希值
+    data.insert(data.end(), encoded_block.begin(), encoded_block.end());
+    data.resize(data.size() + sizeof(uint32_t));
+    memcpy(data.data() + data.size() - sizeof(uint32_t), &block_hash, sizeof(uint32_t));
+
+}
+
+std::shared_ptr<SST> SSTBuilder::build(size_t sst_id, const std::string &path)
+{
+    if(!block.is_empty())
+    {
+        finish_block();
+    }
+
+    // 判断是否有数据
+    if(meta_entries.empty())
+    {
+        throw std::runtime_error("No data to build SST");
+    }
+
+    // 编码成元数据块 
+    std::vector<uint8_t> meta_block;
+    BlockMeta::encode_meta_to_slice(meta_entries, meta_block);
+
+    // 计算元数据块的偏移量
+    uint32_t meta_offset = static_cast<uint32_t>(data.size());
+
+    // 构建文件内容
+    // 1. 写入数据块
+    std::vector<uint8_t> file_content = std::move(data);
+
+    // 2. 写入元数据块
+    file_content.insert(file_content.end(), meta_block.begin(), meta_block.end());
+
+    // 3.布隆过滤器的优化
+
+    // 构建SST对象并返回
+    memcpy(file_content.data() + file_content.size() - sizeof(uint32_t), &meta_offset, sizeof(uint32_t))
+    
 }
