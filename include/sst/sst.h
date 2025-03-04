@@ -1,14 +1,18 @@
 #pragma once
 #include "../block/block.h"
 #include "../block/blockmeta.h"
+#include "../utils/file.h"
 #include <memory>
 #include <vector>
 #include <string>
 
+class SSTBuilder;
 class SST
 {
+    friend class SSTBuilder;
+
 private:
-    // FileOBJ
+    FileObj file;
     std::vector<BlockMeta> meta_entries;
     size_t sst_id;
     uint32_t meta_block_offset;
@@ -16,7 +20,8 @@ private:
     std::string last_key;
 
 public:
-    std::shared_ptr<Block> read_block(size_t block_id) const;
+    static std::shared_ptr<SST> open(size_t sst_id, FileObj file);
+    std::shared_ptr<Block> read_block(size_t block_id);
 };
 
 class SSTBuilder
@@ -27,7 +32,7 @@ private:
     std::string last_key;
     std::vector<BlockMeta> meta_entries;
     std::vector<uint8_t> data; // 已经编码的数据
-    size_t block_size; // block的容量，超出这个限制就被编码
+    size_t block_size;         // block的容量，超出这个限制就被编码
 
 public:
     SSTBuilder(size_t block_size);

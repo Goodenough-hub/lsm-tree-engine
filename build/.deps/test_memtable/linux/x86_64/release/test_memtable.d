@@ -1,9 +1,4 @@
 {
-    files = {
-        "build/.objs/test_memtable/linux/x86_64/release/test/test_memtable.cpp.o",
-        "build/linux/x86_64/release/libskiplist.a",
-        "build/linux/x86_64/release/libmemtable.a"
-    },
     values = {
         "/usr/bin/g++",
         {
@@ -17,5 +12,10 @@
             "-lskiplist",
             "-lpthread"
         }
+    },
+    files = {
+        "build/.objs/test_memtable/linux/x86_64/release/test/test_memtable.cpp.o",
+        "build/linux/x86_64/release/libskiplist.a",
+        "build/linux/x86_64/release/libmemtable.a"
     }
 }

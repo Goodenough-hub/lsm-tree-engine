@@ -9,7 +9,8 @@ Memtable::Memtable() : current_table(std::make_shared<SkipList>()), frozen_bytes
 void Memtable::put(const std::string &key, const std::string &value)
 {
     std::unique_lock<std::shared_mutex> lock(cur_mtx);
-    current_table->put(key, value);
+    // current_table->put(key, value);
+    put_(key, value);
 }
 
 void Memtable::put_(const std::string &key, const std::string &value)
@@ -27,7 +28,8 @@ void Memtable::put_batch(const std::vector<std::string> &key, const std::vector<
 void Memtable::remove(const std::string &key)
 {
     std::unique_lock<std::shared_mutex> lock(cur_mtx);
-    current_table->put(key, "");
+    // current_table->put(key, "");
+    remove_(key);
 }
 
 void Memtable::remove_(const std::string &key)

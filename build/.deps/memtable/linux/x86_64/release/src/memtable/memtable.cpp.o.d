@@ -1,7 +1,4 @@
 {
-    files = {
-        "src/memtable/memtable.cpp"
-    },
     depfiles_format = "gcc",
     depfiles = "memtable.o: src/memtable/memtable.cpp  src/memtable/../../include/memtable/memtable.h  src/memtable/../../include/memtable/../skiplist/skiplist.h\
 ",
@@ -16,5 +13,8 @@
             "-Iinclude",
             "-DNDEBUG"
         }
+    },
+    files = {
+        "src/memtable/memtable.cpp"
     }
 }

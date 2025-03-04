@@ -1,6 +1,7 @@
 #include "../../include/sst/sst.h"
 
-SSTBuilder::SSTBuilder(size_t block_size) : block_size(block_size) {
+SSTBuilder::SSTBuilder(size_t block_size) : block_size(block_size)
+{
     meta_entries.clear();
     data.clear();
     first_key.clear();
@@ -9,17 +10,17 @@ SSTBuilder::SSTBuilder(size_t block_size) : block_size(block_size) {
 
 void SSTBuilder::add(const std::string &key, const std::string &value)
 {
-    if(first_key.empty())
+    if (first_key.empty())
     {
         first_key = key;
     }
 
-    if(block.add_entry(key, value))
+    if (block.add_entry(key, value))
     {
         last_key = key;
         return;
     }
-    
+
     finish_block(); // 把当前的block写入data中
 
     // 全新的block
@@ -39,31 +40,31 @@ void SSTBuilder::finish_block()
 
     // 计算哈希校验值
     auto block_hash = static_cast<uint32_t>(std::hash<std::string_view>{}(
-        std::string_view(reinterpret_cast<char*>(
-            encoded_block.data()), encoded_block.size())));
-    
+        std::string_view(reinterpret_cast<char *>(
+                             encoded_block.data()),
+                         encoded_block.size())));
+
     // 预分配空间并添加数据
     data.reserve(data.size() + encoded_block.size() + sizeof(uint32_t)); // uint_32是哈希值
     data.insert(data.end(), encoded_block.begin(), encoded_block.end());
     data.resize(data.size() + sizeof(uint32_t));
     memcpy(data.data() + data.size() - sizeof(uint32_t), &block_hash, sizeof(uint32_t));
-
 }
 
 std::shared_ptr<SST> SSTBuilder::build(size_t sst_id, const std::string &path)
 {
-    if(!block.is_empty())
+    if (!block.is_empty())
     {
         finish_block();
     }
 
     // 判断是否有数据
-    if(meta_entries.empty())
+    if (meta_entries.empty())
     {
         throw std::runtime_error("No data to build SST");
     }
 
-    // 编码成元数据块 
+    // 编码成元数据块
     std::vector<uint8_t> meta_block;
     BlockMeta::encode_meta_to_slice(meta_entries, meta_block);
 
@@ -80,6 +81,20 @@ std::shared_ptr<SST> SSTBuilder::build(size_t sst_id, const std::string &path)
     // 3.布隆过滤器的优化
 
     // 构建SST对象并返回
-    memcpy(file_content.data() + file_content.size() - sizeof(uint32_t), &meta_offset, sizeof(uint32_t))
-    
+    memcpy(file_content.data() + file_content.size() - sizeof(uint32_t), &meta_offset, sizeof(uint32_t));
+
+    FileObj file;
+    file.create_and_write(path, file_content);
+
+    auto res = std::make_shared<SST>();
+
+    res->sst_id = sst_id;
+    res->file = std::move(file);
+    res->first_key = meta_entries.front().first_key;
+    res->last_key = meta_entries.back().last_key;
+    res->meta_block_offset = meta_offset;
+
+    // 缓存池
+
+    return res;
 }
