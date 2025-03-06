@@ -17,7 +17,7 @@ bool MmapFile::create_and_map(const std::string &path, size_t size)
     }
 
     // 调节文件大小
-    if (ftruncate(fd_, size) != 0)
+    if (ftruncate(fd_, size) == -1)
     {
         close();
         return false;

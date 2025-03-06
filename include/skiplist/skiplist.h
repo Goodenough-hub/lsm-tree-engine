@@ -8,7 +8,8 @@
 #include <random>
 
 // 跳表的节点
-struct SkipListNode {
+struct SkipListNode
+{
     std::string key;   // 节点存储的键
     std::string value; // 节点存储的值
     std::vector<std::shared_ptr<SkipListNode>>
@@ -18,13 +19,15 @@ struct SkipListNode {
     SkipListNode(const std::string &k, const std::string &v, int level)
         : key(k), value(v), forward(level, nullptr),
           backward(level, std::weak_ptr<SkipListNode>()) {}
-    void set_backward(int level, std::shared_ptr<SkipListNode> node) {
-      backward[level] = std::weak_ptr<SkipListNode>(node);
+    void set_backward(int level, std::shared_ptr<SkipListNode> node)
+    {
+        backward[level] = std::weak_ptr<SkipListNode>(node);
     }
 };
 
 class SkipListIterator;
-class SkipList {
+class SkipList
+{
 private:
     std::shared_ptr<SkipListNode> head; // 跳表的头节点
     int max_level;                      // 跳表的最大层数
@@ -48,16 +51,21 @@ public:
     // begin() 和 end() 迭代器
     SkipListIterator begin();
     SkipListIterator end();
+
+    size_t get_size() const;
+
+    std::vector<std::pair<std::string, std::string>> flush(); // 获取键值对
 };
 
-class SkipListIterator {
+class SkipListIterator
+{
 private:
     std::shared_ptr<SkipListNode> current;
 
 public:
-    SkipListIterator(std::shared_ptr<SkipListNode> node) : current(node){};
-    
-    SkipListIterator &operator++(); // 前置自增
+    SkipListIterator(std::shared_ptr<SkipListNode> node) : current(node) {};
+
+    SkipListIterator &operator++();   // 前置自增
     SkipListIterator operator++(int); // 后置自增
     bool operator==(const SkipListIterator &other) const;
     bool operator!=(const SkipListIterator &other) const;

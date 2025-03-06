@@ -1,11 +1,13 @@
 #pragma once
 
 #include "../skiplist/skiplist.h"
+#include "../sst/sst.h"
 #include <list>
 #include <shared_mutex>
 #include <vector>
 
-class Memtable{
+class Memtable
+{
 private:
     std::shared_ptr<SkipList> current_table;
     std::list<std::shared_ptr<SkipList>> frozen_tables;
@@ -13,7 +15,7 @@ private:
 
     // std::shared_mutex rx_mutex; // 读写锁，以skiplist为单位
     // 两个锁
-    std::shared_mutex cur_mtx; // 读写current_table的锁
+    std::shared_mutex cur_mtx;    // 读写current_table的锁
     std::shared_mutex frozen_mtx; // 读写frozen_tables的锁
 public:
     Memtable();
@@ -25,6 +27,14 @@ public:
     void clear();
     std::optional<std::string> get(const std::string &key);
     std::vector<std::optional<std::string>> get_batch(const std::vector<std::string> &keys);
+
+    size_t get_cur_size();
+    size_t get_frozen_size();
+    size_t get_total_size();
+
+    // 构建SST
+    std::shared_ptr<SST> flush_last(SSTBuilder &builder, std::string &sst_path, size_t sst_id);
+
 private:
     // 不加锁的版本
     void put_(const std::string &key, const std::string &value);
