@@ -98,3 +98,27 @@ std::shared_ptr<SST> SSTBuilder::build(size_t sst_id, const std::string &path)
 
     return res;
 }
+
+SstIterator SST::get(const std::string &key)
+{
+    return SstIterator(shared_from_this(), key);
+}
+
+size_t SST::num_blocks()
+{
+    return meta_entries.size();
+}
+
+SstIterator SST::begin()
+{
+    return SstIterator(shared_from_this());
+}
+
+SstIterator SST::end()
+{
+    auto res = SstIterator(shared_from_this());
+    res.m_sst = nullptr;
+    res.m_block_idx = -1;
+    res.cached_value = std::nullopt;
+    return res;
+}

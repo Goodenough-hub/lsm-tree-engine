@@ -1,4 +1,6 @@
 {
+    depfiles = "skiplist.o: src/skiplist/skiplist.cpp  src/skiplist/../../include/skiplist/skiplist.h\
+",
     values = {
         "/usr/bin/gcc",
         {
@@ -11,10 +13,8 @@
             "-DNDEBUG"
         }
     },
-    depfiles_format = "gcc",
     files = {
         "src/skiplist/skiplist.cpp"
     },
-    depfiles = "skiplist.o: src/skiplist/skiplist.cpp  src/skiplist/../../include/skiplist/skiplist.h\
-"
+    depfiles_format = "gcc"
 }

@@ -1,5 +1,4 @@
 {
-    depfiles_format = "gcc",
     depfiles = "test_utils.o: test/test_utils.cpp test/../include/utils/file.h  test/../include/utils/mmap_file.h\
 ",
     values = {
@@ -18,5 +17,6 @@
     },
     files = {
         "test/test_utils.cpp"
-    }
+    },
+    depfiles_format = "gcc"
 }

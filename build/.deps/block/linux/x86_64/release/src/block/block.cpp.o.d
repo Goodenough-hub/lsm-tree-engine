@@ -1,8 +1,6 @@
 {
-    files = {
-        "src/block/block.cpp"
-    },
-    depfiles_format = "gcc",
+    depfiles = "block.o: src/block/block.cpp src/block/../../include/block/block.h\
+",
     values = {
         "/usr/bin/gcc",
         {
@@ -15,6 +13,8 @@
             "-DNDEBUG"
         }
     },
-    depfiles = "block.o: src/block/block.cpp src/block/../../include/block/block.h\
-"
+    files = {
+        "src/block/block.cpp"
+    },
+    depfiles_format = "gcc"
 }

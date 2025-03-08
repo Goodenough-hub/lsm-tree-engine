@@ -1,5 +1,5 @@
 {
-    depfiles = "test_skiplist.o: test/test_skiplist.cpp  test/../include/skiplist/skiplist.h\
+    depfiles = "std_file.o: src/utils/std_file.cpp  src/utils/../../include/utils/std_file.h\
 ",
     values = {
         "/usr/bin/gcc",
@@ -10,13 +10,11 @@
             "-O3",
             "-std=c++20",
             "-Iinclude",
-            "-isystem",
-            "/home/fangming/.xmake/packages/g/gtest/v1.15.2/aea99fd8f63a47f0a0b9fe284bee1bfa/include",
             "-DNDEBUG"
         }
     },
     files = {
-        "test/test_skiplist.cpp"
+        "src/utils/std_file.cpp"
     },
     depfiles_format = "gcc"
 }

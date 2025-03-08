@@ -1,7 +1,6 @@
 {
-    files = {
-        "src/utils/file.cpp"
-    },
+    depfiles = "file.o: src/utils/file.cpp src/utils/../../include/utils/file.h  src/utils/../../include/utils/mmap_file.h\
+",
     values = {
         "/usr/bin/gcc",
         {
@@ -14,7 +13,8 @@
             "-DNDEBUG"
         }
     },
-    depfiles = "file.o: src/utils/file.cpp src/utils/../../include/utils/file.h  src/utils/../../include/utils/mmap_file.h\
-",
+    files = {
+        "src/utils/file.cpp"
+    },
     depfiles_format = "gcc"
 }

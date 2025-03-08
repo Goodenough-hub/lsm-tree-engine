@@ -1,4 +1,8 @@
 {
+    files = {
+        "build/.objs/test_utils/linux/x86_64/release/test/test_utils.cpp.o",
+        "build/linux/x86_64/release/libutils.a"
+    },
     values = {
         "/usr/bin/g++",
         {
@@ -11,9 +15,5 @@
             "-lutils",
             "-lpthread"
         }
-    },
-    files = {
-        "build/.objs/test_utils/linux/x86_64/release/test/test_utils.cpp.o",
-        "build/linux/x86_64/release/libutils.a"
     }
 }

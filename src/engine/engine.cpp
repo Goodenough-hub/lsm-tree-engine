@@ -14,6 +14,41 @@ void LSMEngine::put(const std::string &key, const std::string &value)
     }
 }
 
+std::optional<std::string> LSMEngine::get(const std::string &key)
+{
+    // 1.先从memtable中查找
+    auto value = memtable.get(key);
+    if (value.has_value())
+    {
+        return value;
+    }
+    else
+    {
+        // 删除标记
+        return std::nullopt;
+    }
+
+    // 2. l0_sst查询
+    std::shared_lock<std::shared_mutex> lock(ssts_mtx);
+    for (auto &sst_id : l0_sst_ids)
+    {
+        std::shared_ptr<SST> sst = ssts[sst_id];
+        auto res = sst->get(key);
+        if (res != sst->end())
+        {
+            if ((res->second.size() > 0))
+            {
+                return res->second;
+            }
+            else
+            {
+                return std::nullopt;
+            }
+        }
+    }
+    return std::nullopt;
+}
+
 std::string LSMEngine::get_sst_path(size_t sst_id)
 {
     // sst的文件格式：data_dir/sst_<sst_id>

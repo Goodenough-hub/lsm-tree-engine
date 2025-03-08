@@ -2,12 +2,14 @@
 #include "../block/block.h"
 #include "../block/blockmeta.h"
 #include "../utils/file.h"
+#include "sst_iterator.h"
 #include <memory>
 #include <vector>
 #include <string>
 
 class SSTBuilder;
-class SST
+class SstIterator;
+class SST : public std::enable_shared_from_this<SST>
 {
     friend class SSTBuilder;
 
@@ -22,6 +24,13 @@ private:
 public:
     static std::shared_ptr<SST> open(size_t sst_id, FileObj file);
     std::shared_ptr<Block> read_block(size_t block_id);
+
+    SstIterator get(const std::string &key);
+
+    size_t num_blocks();
+
+    SstIterator begin();
+    SstIterator end();
 };
 
 class SSTBuilder

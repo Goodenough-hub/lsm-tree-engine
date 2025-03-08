@@ -1,9 +1,6 @@
 {
     depfiles = "mmap_file.o: src/utils/mmap_file.cpp  src/utils/../../include/utils/mmap_file.h\
 ",
-    files = {
-        "src/utils/mmap_file.cpp"
-    },
     values = {
         "/usr/bin/gcc",
         {
@@ -15,6 +12,9 @@
             "-Iinclude",
             "-DNDEBUG"
         }
+    },
+    files = {
+        "src/utils/mmap_file.cpp"
     },
     depfiles_format = "gcc"
 }
