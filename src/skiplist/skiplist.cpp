@@ -262,3 +262,129 @@ bool SkipListIterator::is_end() const
 {
   return current == nullptr;
 }
+
+// 返回的是第一个满足谓词的位置，和最后一个满足谓词位置的下一个位置
+// 左开右闭区间
+// predicate返回值：
+// 0：满足条件
+// >0：不满足谓词，需要往右移动
+// <0：不满足谓词，需要往左移动
+
+// 自定义 predicate 函数
+// int custom_predicate(const std::string &key) {
+//     if (key >= "apple" && key < "banana") {
+//         return 0; // 满足条件
+//     } else if (key < "apple") {
+//         return -1; // 需要往右移动
+//     } else {
+//         return 1; // 需要往左移动
+//     }
+// }
+std::optional<std::pair<SkipListIterator, SkipListIterator>> SkipList::iters_monotony_predicate(std::function<int(const std::string &)> predicate)
+{
+  auto current = head;
+  SkipListIterator begin_iter(nullptr);
+  SkipListIterator end_iter(nullptr);
+
+  // 从最高层开始查找
+  bool find1 = false;
+  for (int i = current_level - 1; i >= 0; i--)
+  {
+    while (!find1)
+    {
+      auto forward_i = current->forward[i];
+      if (forward_i == nullptr)
+      {
+        break;
+      }
+      auto direction = predicate(forward_i->key);
+      if (direction == 0)
+      {
+        find1 = true;
+        current = forward_i;
+        break;
+      }
+      else if (direction < 0)
+      {
+        break;
+      }
+      else
+      {
+        current = forward_i;
+      }
+    }
+  }
+  if (!find1)
+  {
+    return std::nullopt;
+  }
+
+  // 记录当前位置
+  auto current_2 = current;
+
+  for (int i = current->backward.size() - 1; i >= 0; i--)
+  {
+    while (true)
+    {
+      // td::weak_ptr::lock()
+      // 作用：lock() 方法尝试将一个 std::weak_ptr 转换为 std::shared_ptr。如果 std::weak_ptr 指向的对象仍然存在，
+      // 则返回一个指向该对象的 std::shared_ptr；否则返回一个空的 std::shared_ptr。
+      // current->backward[i].lock() 尝试将 std::weak_ptr 转换为 std::shared_ptr<SkipListNode>。
+      // 如果转换后的 std::shared_ptr 为空（即 nullptr），说明该 std::weak_ptr 指向的对象已经被销毁。
+      // 如果转换后的 std::shared_ptr 等于头节点 head，说明已经到达跳跃表的起始位置。
+      if (current->backward[i].lock() == nullptr || current->backward[i].lock() == head)
+      {
+        // 没有实际存储键值对的前向节点了
+        break;
+      }
+      auto direction = predicate(current->backward[i].lock()->key);
+      if (direction == 0)
+      {
+        current = current->backward[i].lock();
+        continue;
+      }
+      else if (direction > 0)
+      {
+        // 需要更小的步长
+        break;
+      }
+      else
+      {
+        throw std::runtime_error("iters_monotony_predicate error: invalid direction");
+      }
+    }
+  }
+
+  begin_iter = SkipListIterator(current);
+
+  // 找右端点
+  for (int i = current_2->forward.size() - 1; i >= 0; i--)
+  {
+    while (true)
+    {
+      if (current_2->forward[i] == nullptr)
+      {
+        break;
+      }
+      auto direction = predicate(current_2->forward[i]->key);
+      if (direction == 0)
+      {
+        current_2 = current_2->forward[i];
+        continue;
+      }
+      else if (direction < 0)
+      {
+        // 需要更小的步长
+        break;
+      }
+      else
+      {
+        throw std::runtime_error("iters_monotony_predicate error: invalid direction");
+      }
+    }
+  }
+  end_iter = SkipListIterator(current_2);
+  ++end_iter;
+
+  return std::make_optional(std::make_pair(begin_iter, end_iter));
+}

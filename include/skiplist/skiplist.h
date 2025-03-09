@@ -6,6 +6,7 @@
 #include <shared_mutex>
 #include <cstdlib>
 #include <random>
+#include <functional>
 
 // 跳表的节点
 struct SkipListNode
@@ -51,6 +52,10 @@ public:
     // begin() 和 end() 迭代器
     SkipListIterator begin();
     SkipListIterator end();
+
+    // 基于传入的谓词返回一对迭代器，表示满足该谓词条件的范围
+    // 允许用户自定义筛选逻辑，增强了 SkipList 的灵活性和通用性
+    std::optional<std::pair<SkipListIterator, SkipListIterator>> iters_monotony_predicate(std::function<int(const std::string &)> predicate);
 
     size_t get_size() const;
 
