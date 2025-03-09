@@ -17,7 +17,7 @@ private:
     FileObj file;
     std::vector<BlockMeta> meta_entries;
     size_t sst_id;
-    uint32_t meta_block_offset;
+    uint32_t meta_block_offset; // 表示元数据块（Meta Block）在 SST 文件中的偏移量。
     std::string first_key;
     std::string last_key;
 
@@ -31,6 +31,8 @@ public:
 
     SstIterator begin();
     SstIterator end();
+
+    size_t find_block_idx(const std::string &key); // 返回-1表示没找到
 };
 
 class SSTBuilder

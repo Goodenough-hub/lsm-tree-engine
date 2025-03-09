@@ -19,10 +19,11 @@ private:
     mutable std::optional<value_type> cached_value;
 
     void update_current() const;
+    void seek(const std::string &key);
 
 public:
     SstIterator(std::shared_ptr<SST> sst) : m_sst(std::move(sst)), m_block_idx(0), cached_value(std::nullopt) {}
-    SstIterator(std::shared_ptr<SST> sst, const std::string &key) : m_sst(std::move(sst)), m_block_idx(0), cached_value(std::nullopt) {}
+    SstIterator(std::shared_ptr<SST> sst, const std::string &key);
     SstIterator &operator++();
     SstIterator operator++(int) = delete; // 方便后续虚函数的实现
 

@@ -1,6 +1,53 @@
 #include "../../include/sst/sst_iterator.h"
 #include "../../include/sst/sst.h"
 
+SstIterator::SstIterator(std::shared_ptr<SST> sst, const std::string &key) : m_sst(std::move(sst)), cached_value(std::nullopt)
+{
+    if (m_sst)
+    {
+        seek(key);
+    }
+}
+
+void SstIterator::seek(const std::string &key)
+{
+    if (!m_sst)
+    {
+        m_block_iter = nullptr;
+        return;
+    }
+
+    try
+    {
+        m_block_idx = m_sst->find_block_idx(key);
+        if (m_block_idx == -1 || m_block_idx >= m_sst->num_blocks())
+        {
+            // 把迭代器置为end或者无效的状态
+            m_block_iter = nullptr;
+            m_block_idx = m_sst->num_blocks();
+            return;
+        }
+        auto block = m_sst->read_block(m_block_idx);
+        if (!block)
+        {
+            m_block_iter = nullptr;
+            return;
+        }
+        m_block_iter = std::make_shared<BlockIterator>(block, key);
+        if (m_block_iter->is_end())
+        {
+            // block没法定位到key
+            m_block_iter = nullptr;
+            m_block_idx = m_sst->num_blocks();
+            return;
+        }
+    }
+    catch (const std::exception &e)
+    {
+        m_block_iter = nullptr;
+        return;
+    }
+}
 SstIterator &SstIterator::operator++()
 {
     if (!m_block_iter)

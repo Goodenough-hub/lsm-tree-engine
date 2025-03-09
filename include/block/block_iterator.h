@@ -14,10 +14,11 @@ class BlockIterator
 private:
     std::shared_ptr<Block> block;
     size_t current_index;
-    mutable std::optional<value_type> current_value;
+    mutable std::optional<value_type> cached_value;
 
 public:
     BlockIterator(std::shared_ptr<Block> b, size_t index);
+    BlockIterator(std::shared_ptr<Block> b, const std::string &key);
 
     BlockIterator &operator++();
     BlockIterator operator++(int) = delete;
@@ -26,4 +27,4 @@ public:
     bool operator!=(const BlockIterator &other) const;
     value_type operator*() const;
     bool is_end();
-}
+};

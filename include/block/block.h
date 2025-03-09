@@ -3,8 +3,9 @@
 #include <cstring>
 #include <vector>
 
-class Block 
+class Block
 {
+    friend BlockIterator;
     std::vector<uint8_t> data;
     std::vector<uint16_t> offsets;
     size_t capacity; // 容量
@@ -19,7 +20,7 @@ class Block
     Entry get_entry_at(size_t offset) const;
     std::string get_key_at(size_t offset) const;
     std::string get_value_at(size_t offset) const;
-    
+
 public:
     Block() = default;
     Block(size_t capacity);
@@ -31,4 +32,7 @@ public:
     static std::shared_ptr<Block> decode(const std::vector<uint8_t> &encode);
 
     bool add_entry(const std::string key, const std::string &value);
+
+    std::optional<size_t> get_idx_binary(const std::string &key);
+    int compare_key(size_t offset, const std::string &target);
 };

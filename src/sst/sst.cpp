@@ -122,3 +122,34 @@ SstIterator SST::end()
     res.cached_value = std::nullopt;
     return res;
 }
+
+std::shared_ptr<Block> SST::read_block(size_t block_id)
+{
+    if (block_id >= meta_entries.size())
+    {
+        throw std::runtime_error("Block id out of range");
+    }
+
+    const auto &meta = meta_entries[block_id];
+    size_t block_size;
+
+    // 计算block的大小
+    if (block_id == meta_entries.size() - 1)
+    {
+        // 最后一个block
+        // block_id 等于 meta_entries.size() - 1
+        block_size = meta_block_offset - meta.offset;
+    }
+    else
+    {
+        block_size = meta_entries[block_id + 1].offset - meta.offset;
+    }
+
+    // 读取block
+    auto block_data = file.read_to_slice(meta.offset, block_size);
+    auto block_res = Block::decode(block_data);
+
+    // 加入缓存
+
+    return block_res;
+}
