@@ -123,6 +123,40 @@ SstIterator SST::end()
     return res;
 }
 
+std::shared_ptr<SST> SST::open(size_t sst_id, FileObj file)
+{
+    auto sst = std::make_shared<SST>();
+    sst->sst_id = sst_id;
+    sst->file = std::move(file);
+
+    // 缓存池
+
+    // 读取文件末尾的元数据块
+    // 1.读取偏移量
+    size_t file_size = sst->file.size();
+    if (file_size < sizeof(uint32_t))
+    {
+        throw std::runtime_error("File size is too small");
+    }
+
+    auto meta_offset_bytes = sst->file.read_to_slice(file_size - sizeof(uint32_t), sizeof(uint32_t));
+    memcpy(&sst->meta_block_offset, meta_offset_bytes.data(), sizeof(uint32_t));
+
+    // 2.读取并解码元数据
+    uint32_t meta_size = file_size - sst->meta_block_offset;
+    -sizeof(uint32_t);
+    auto meta_bytes = sst->file.read_to_slice(sst->meta_block_offset, meta_size);
+    sst->meta_entries = BlockMeta::decode_meta_to_slice(meta_bytes);
+
+    // 3.设置首尾key
+    if (!sst->meta_entries.empty())
+    {
+        sst->first_key = sst->meta_entries.front().first_key;
+        sst->last_key = sst->meta_entries.back().last_key;
+    }
+    return sst;
+}
+
 std::shared_ptr<Block> SST::read_block(size_t block_id)
 {
     if (block_id >= meta_entries.size())
@@ -147,7 +181,7 @@ std::shared_ptr<Block> SST::read_block(size_t block_id)
 
     // 读取block
     auto block_data = file.read_to_slice(meta.offset, block_size);
-    auto block_res = Block::decode(block_data);
+    auto block_res = Block::decode(block_data, true);
 
     // 加入缓存
 

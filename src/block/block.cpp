@@ -25,7 +25,7 @@ std::vector<uint8_t> Block::encode()
     return encoded;
 }
 
-std::shared_ptr<Block> Block::decode(const std::vector<uint8_t> &encoded)
+std::shared_ptr<Block> Block::decode(const std::vector<uint8_t> &encoded, bool with_hash)
 {
     // 创建对象
     auto block = std::make_shared<Block>();
@@ -40,6 +40,24 @@ std::shared_ptr<Block> Block::decode(const std::vector<uint8_t> &encoded)
     // 读取元素个数
     uint16_t num_elemts;
     size_t num_elemts_pos = encoded.size() - sizeof(uint16_t);
+
+    if (with_hash)
+    {
+        num_elemts_pos -= sizeof(uint32_t);
+        auto hash_pos = encoded.size() - sizeof(uint32_t);
+        uint32_t hash_value;
+        memcpy(&hash_value, encoded.data() + hash_pos, sizeof(uint32_t));
+
+        uint32_t compute_hash = std::hash<std::string_view>{}(
+            std::string_view(reinterpret_cast<const char *>(encoded.data()),
+                             encoded.size() - sizeof(uint32_t)));
+
+        if (hash_value != compute_hash)
+        {
+            throw std::runtime_error("Invalid encoded block: hash value mismatch");
+        }
+    }
+
     memcpy(&num_elemts, encoded.data() + num_elemts_pos, sizeof(uint16_t));
 
     // 验证数据大小

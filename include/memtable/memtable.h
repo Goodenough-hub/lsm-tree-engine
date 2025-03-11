@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../skiplist/skiplist.h"
+#include "../../include/iterator/iterator.h"
 #include "../sst/sst.h"
 #include <list>
 #include <shared_mutex>
@@ -25,6 +26,14 @@ public:
     void remove(const std::string &key);
     void remove_batch(const std::vector<std::string> &keys);
     void clear();
+
+    // 迭代器
+    HeapIterator begin();
+    HeapIterator end();
+
+    // 补全谓词查询
+    std::optional<std::pair<HeapIterator, HeapIterator>> iter_monotony_predicate(std::function<int(const std::string &)> predicate);
+
     std::optional<std::string> get(const std::string &key);
     std::vector<std::optional<std::string>> get_batch(const std::vector<std::string> &keys);
 

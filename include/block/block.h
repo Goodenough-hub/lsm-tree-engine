@@ -2,6 +2,7 @@
 #include <memory>
 #include <cstring>
 #include <vector>
+#include "block_iterator.h"
 
 class Block
 {
@@ -29,7 +30,7 @@ public:
     bool is_empty() const;
 
     std::vector<uint8_t> encode();
-    static std::shared_ptr<Block> decode(const std::vector<uint8_t> &encode);
+    static std::shared_ptr<Block> decode(const std::vector<uint8_t> &encode, bool with_hash);
 
     bool add_entry(const std::string key, const std::string &value);
 

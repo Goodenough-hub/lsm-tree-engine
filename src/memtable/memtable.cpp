@@ -167,3 +167,29 @@ std::shared_ptr<SST> Memtable::flush_last(SSTBuilder &builder, std::string &sst_
     auto sst = builder.build(sst_id, sst_path);
     return sst;
 }
+
+HeapIterator Memtable::begin()
+{
+    std::vector<SearchItem> item_vec;
+    for (auto iter = current_table->begin(); iter != current_table->end(); iter++)
+    {
+        item_vec.emplace_back(iter.get_key(), iter.get_value(), 0);
+    }
+
+    int table_idx = 1;
+    for (auto ft = frozen_tables.begin(); ft != frozen_tables.end(); ft++)
+    {
+        auto table = *ft;
+        for (auto iter = table->begin(); iter != table->end(); iter++)
+        {
+            item_vec.emplace_back(iter.get_key(), iter.get_value(), table_idx);
+        }
+        table_idx++;
+    }
+    return HeapIterator(item_vec);
+}
+
+HeapIterator Memtable::end()
+{
+    return HeapIterator();
+}
