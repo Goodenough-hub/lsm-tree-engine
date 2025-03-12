@@ -98,7 +98,7 @@ void HeapIterator::update_current() const
 {
     if (!items.empty())
     {
-        current = std::make_shared<value_type>(items.top());
+        current = std::make_shared<value_type>(to_pair(items.top()));
     }
     else
     {

@@ -2,6 +2,52 @@
 #include "../../include/const.h"
 #include <sstream>
 #include <iomanip>
+#include <filesystem>
+
+LSMEngine::LSMEngine(const std::string path)
+{
+    block_cache = std::make_shared<BlockCache>(LSM_BLOCK_CACHE_CAPACITY, LSM_BLOCK_CACHE_K);
+
+    // 判断数据库文件
+    if (!std::filesystem::exists(path))
+    {
+        std::filesystem::create_directories(path);
+    }
+    else
+    {
+        // 检查sst文件并加载
+        for (auto &entry : std::filesystem::directory_iterator(path))
+        {
+            if (!entry.is_regular_file())
+            {
+                continue;
+            }
+            std::string filename = entry.path().filename().string();
+            if (filename.substr(0, 4) != "sst_")
+            {
+                continue;
+            }
+            // 提取sst id
+            // sst_{id} id 占4位
+            std::string id_str = filename.substr(4, filename.length() - 4);
+            if (id_str.empty())
+            {
+                continue;
+            }
+            size_t sst_id = std::stoi(id_str);
+
+            // 加载sst文件
+            std::unique_lock<std::shared_mutex> lock(ssts_mtx);
+            std::string sst_path = get_sst_path(sst_id);
+            auto sst = SST::open(sst_id, FileObj::open(sst_path), block_cache);
+            ssts[sst_id] = sst;
+
+            l0_sst_ids.push_back(sst_id);
+        }
+        l0_sst_ids.sort();
+        l0_sst_ids.reverse();
+    }
+}
 
 void LSMEngine::put(const std::string &key, const std::string &value)
 {

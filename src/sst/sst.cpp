@@ -123,13 +123,14 @@ SstIterator SST::end()
     return res;
 }
 
-std::shared_ptr<SST> SST::open(size_t sst_id, FileObj file)
+std::shared_ptr<SST> SST::open(size_t sst_id, FileObj file, std::shared_ptr<BlockCache> cache)
 {
     auto sst = std::make_shared<SST>();
     sst->sst_id = sst_id;
     sst->file = std::move(file);
 
     // 缓存池
+    sst->cache = cache;
 
     // 读取文件末尾的元数据块
     // 1.读取偏移量

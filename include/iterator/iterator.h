@@ -40,4 +40,10 @@ private:
     std::priority_queue<SearchItem, std::vector<SearchItem>, std::greater<SearchItem>> items;
     mutable std::shared_ptr<value_type> current;
     void update_current() const;
+
+    // 添加转换函数
+    static value_type to_pair(const SearchItem &item)
+    {
+        return std::make_pair(item.key, item.value);
+    }
 };

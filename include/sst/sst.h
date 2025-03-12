@@ -1,6 +1,7 @@
 #pragma once
 #include "../block/block.h"
 #include "../block/blockmeta.h"
+#include "../block/block_cache.h"
 #include "../utils/file.h"
 #include "sst_iterator.h"
 #include <memory>
@@ -18,11 +19,12 @@ private:
     std::vector<BlockMeta> meta_entries;
     size_t sst_id;
     uint32_t meta_block_offset; // 表示元数据块（Meta Block）在 SST 文件中的偏移量。
+    std::shared_ptr<BlockCache> cache;
     std::string first_key;
     std::string last_key;
 
 public:
-    static std::shared_ptr<SST> open(size_t sst_id, FileObj file);
+    static std::shared_ptr<SST> open(size_t sst_id, FileObj file, std::shared_ptr<BlockCache> cache);
     std::shared_ptr<Block> read_block(size_t block_id);
 
     SstIterator get(const std::string &key);
