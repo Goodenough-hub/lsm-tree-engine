@@ -42,7 +42,7 @@ public:
     size_t get_total_size();
 
     // 构建SST
-    std::shared_ptr<SST> flush_last(SSTBuilder &builder, std::string &sst_path, size_t sst_id);
+    std::shared_ptr<SST> flush_last(SSTBuilder &builder, std::string &sst_path, size_t sst_id, std::shared_ptr<BlockCache> block_cache);
 
 private:
     // 不加锁的版本

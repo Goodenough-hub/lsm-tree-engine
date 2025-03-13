@@ -138,7 +138,7 @@ size_t Memtable::get_total_size()
     return get_cur_size() + get_frozen_size();
 }
 
-std::shared_ptr<SST> Memtable::flush_last(SSTBuilder &builder, std::string &sst_path, size_t sst_id)
+std::shared_ptr<SST> Memtable::flush_last(SSTBuilder &builder, std::string &sst_path, size_t sst_id, std::shared_ptr<BlockCache> block_cache)
 {
     if (frozen_tables.empty())
     {
@@ -164,7 +164,7 @@ std::shared_ptr<SST> Memtable::flush_last(SSTBuilder &builder, std::string &sst_
         builder.add(k, v);
     }
 
-    auto sst = builder.build(sst_id, sst_path);
+    auto sst = builder.build(sst_id, sst_path, block_cache);
     return sst;
 }
 

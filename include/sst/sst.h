@@ -3,6 +3,7 @@
 #include "../block/blockmeta.h"
 #include "../block/block_cache.h"
 #include "../utils/file.h"
+#include "../utils/bloom_filter.h"
 #include "sst_iterator.h"
 #include <memory>
 #include <vector>
@@ -19,9 +20,11 @@ private:
     std::vector<BlockMeta> meta_entries;
     size_t sst_id;
     uint32_t meta_block_offset; // 表示元数据块（Meta Block）在 SST 文件中的偏移量。
-    std::shared_ptr<BlockCache> cache;
+    // std::shared_ptr<BlockCache> cache;
+    uint32_t bloom_filter;
     std::string first_key;
     std::string last_key;
+    std::shared_ptr<BlockCache> cache;
 
 public:
     static std::shared_ptr<SST> open(size_t sst_id, FileObj file, std::shared_ptr<BlockCache> cache);
@@ -48,9 +51,10 @@ private:
     size_t block_size;         // block的容量，超出这个限制就被编码
 
 public:
+    std::shared_ptr<BloomFilter> bloom_filter;
     SSTBuilder(size_t block_size);
     void add(const std::string &key, const std::string &value);
     size_t estimated_size() const;
     void finish_block(); // 当前block被写满，然后清空进行下一个block的编码
-    std::shared_ptr<SST> build(size_t sst_id, const std::string &path);
+    std::shared_ptr<SST> build(size_t sst_id, const std::string &path, std::shared_ptr<BlockCache> block_cache);
 };

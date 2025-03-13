@@ -1,4 +1,5 @@
 #include "../../include/sst/sst.h"
+#include "../../include/const.h"
 
 SSTBuilder::SSTBuilder(size_t block_size) : block_size(block_size)
 {
@@ -51,7 +52,7 @@ void SSTBuilder::finish_block()
     memcpy(data.data() + data.size() - sizeof(uint32_t), &block_hash, sizeof(uint32_t));
 }
 
-std::shared_ptr<SST> SSTBuilder::build(size_t sst_id, const std::string &path)
+std::shared_ptr<SST> SSTBuilder::build(size_t sst_id, const std::string &path, std::shared_ptr<BlockCache> block_cache)
 {
     if (!block.is_empty())
     {
@@ -79,9 +80,23 @@ std::shared_ptr<SST> SSTBuilder::build(size_t sst_id, const std::string &path)
     file_content.insert(file_content.end(), meta_block.begin(), meta_block.end());
 
     // 3.布隆过滤器的优化
+    uint32_t bloom_offset = file_content.size();
+    if (this->bloom_filter == nullptr)
+    {
+        this->bloom_filter = std::make_shared<BloomFilter>(BLOOM_FILTER_EXPEXTED_SIZE, BLOOM_FILTER_EXPEXTED_ERROR_RATE);
+    }
+
+    // 需要一个bloom_filter的偏移量
+    auto bf_data = bloom_filter->encode();
+    file_content.insert(file_content.end(), bf_data.begin(), bf_data.end());
+
+    file_content.resize(file_content.size() + sizeof(uint32_t) * 2);
 
     // 构建SST对象并返回
-    memcpy(file_content.data() + file_content.size() - sizeof(uint32_t), &meta_offset, sizeof(uint32_t));
+    memcpy(file_content.data() + file_content.size() - sizeof(uint32_t) * 2, &meta_offset, sizeof(uint32_t));
+
+    // 编码bloom section的offset
+    memcpy(file_content.data() + file_content.size() - sizeof(uint32_t), &bloom_offset, sizeof(uint32_t));
 
     FileObj file;
     file.create_and_write(path, file_content);
