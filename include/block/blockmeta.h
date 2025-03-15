@@ -10,9 +10,9 @@ public:
     std::string last_key;
 
     BlockMeta();
-    BlockMeta(size_t offset, const std::string& first_key, const std::string &last_key);
+    BlockMeta(size_t offset, const std::string &first_key, const std::string &last_key);
 
     static void encode_meta_to_slice(std::vector<BlockMeta> &meta_entries, std::vector<uint8_t> &metadata);
 
-    static std::vector<BlockMeta> decode_meta_to_slice(const std::vector<uint8_t> &metadata);
+    static std::vector<BlockMeta> decode_meta_from_slice(const std::vector<uint8_t> &metadata);
 };

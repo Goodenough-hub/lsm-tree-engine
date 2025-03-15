@@ -21,9 +21,10 @@ private:
     size_t sst_id;
     uint32_t meta_block_offset; // 表示元数据块（Meta Block）在 SST 文件中的偏移量。
     // std::shared_ptr<BlockCache> cache;
-    uint32_t bloom_filter;
+    uint32_t bloom_offset;
     std::string first_key;
     std::string last_key;
+    std::shared_ptr<BloomFilter> bloom_filter;
     std::shared_ptr<BlockCache> cache;
 
 public:

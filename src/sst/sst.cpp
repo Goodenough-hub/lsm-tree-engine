@@ -162,7 +162,7 @@ std::shared_ptr<SST> SST::open(size_t sst_id, FileObj file, std::shared_ptr<Bloc
     uint32_t meta_size = file_size - sst->meta_block_offset;
     -sizeof(uint32_t);
     auto meta_bytes = sst->file.read_to_slice(sst->meta_block_offset, meta_size);
-    sst->meta_entries = BlockMeta::decode_meta_to_slice(meta_bytes);
+    sst->meta_entries = BlockMeta::decode_meta_from_slice(meta_bytes);
 
     // 3.设置首尾key
     if (!sst->meta_entries.empty())
@@ -202,4 +202,40 @@ std::shared_ptr<Block> SST::read_block(size_t block_id)
     // 加入缓存
 
     return block_res;
+}
+
+size_t SST::find_block_idx(const std::string &key)
+{
+    // 先通过bloom filter判断
+    if (!bloom_filter && !bloom_filter->possibly_contains(key))
+    {
+        return -1;
+    }
+
+    // 二分查找
+    int left = 0, right = meta_entries.size() - 1;
+    while (left < right)
+    {
+        int mid = left + (right - left) / 2;
+        const auto &meta = meta_entries[mid];
+
+        if (key < meta.first_key)
+        {
+            right = mid - 1;
+        }
+        else if (key > meta.last_key)
+        {
+            left = mid + 1;
+        }
+        else
+        {
+            return mid;
+        }
+    }
+    if (left >= meta_entries.size())
+    {
+        return -1;
+    }
+
+    return left;
 }

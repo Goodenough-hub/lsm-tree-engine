@@ -1,6 +1,8 @@
 #include "../include/block/block_cache.h"
+#include "../include/block/block.h"
 #include <gtest/gtest.h>
 #include <memory>
+#include <iostream>
 
 class BlockCacheTest : public ::testing::Test
 {
@@ -21,13 +23,19 @@ TEST_F(BlockCacheTest, TestPutAndGet)
 
     cache->put(1, 1, block1);
     cache->put(1, 2, block2);
-    cache->put(1, 3, block1);
+    cache->put(1, 3, block3);
 
-    EXPECT_EQ(cache->get(1, 1), block1)
+    EXPECT_EQ(cache->get(1, 1), block1);
     EXPECT_EQ(cache->get(1, 2), block2);
-    EXCEPT_EQ(cache->get(1, 3), block3);
+    EXPECT_EQ(cache->get(1, 3), block3);
 
     auto block4 = std::make_shared<Block>();
     cache->put(1, 4, block4);
-    EXPECT_EQ(cache->get(1, 4), nullptr);
+    EXPECT_EQ(cache->get(1, 4), block4);
+}
+
+int main(int argc, char **argv)
+{
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }

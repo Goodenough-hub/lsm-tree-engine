@@ -18,6 +18,7 @@ class Block
     };
 
     // 在指定偏移处解码键值对
+    size_t get_offset_at(size_t idx) const;
     Entry get_entry_at(size_t offset) const;
     std::string get_key_at(size_t offset) const;
     std::string get_value_at(size_t offset) const;
@@ -26,7 +27,8 @@ public:
     Block() = default;
     Block(size_t capacity);
 
-    size_t cur_size() const;
+    size_t cur_size() const; // 获取的是容量大小，而不是键值对的数量
+    size_t size();           // 获取的是键值对的数量
     bool is_empty() const;
 
     std::vector<uint8_t> encode();

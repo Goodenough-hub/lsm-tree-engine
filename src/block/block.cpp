@@ -87,6 +87,11 @@ size_t Block::cur_size() const
     return data.size() + offsets.size() * sizeof(uint16_t) + sizeof(uint16_t);
 }
 
+size_t Block::size()
+{
+    return offsets.size();
+}
+
 bool Block::is_empty() const
 {
     return offsets.empty();
@@ -117,6 +122,15 @@ bool Block::add_entry(const std::string key, const std::string &value)
     // 记录偏移量
     offsets.push_back(old_size);
     return true;
+}
+
+size_t Block::get_offset_at(size_t idx) const
+{
+    if (idx > offsets.size())
+    {
+        throw std::runtime_error("idx out of range");
+    }
+    return offsets[idx];
 }
 
 Block::Entry Block::get_entry_at(size_t offset) const

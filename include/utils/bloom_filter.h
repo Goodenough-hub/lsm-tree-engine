@@ -31,7 +31,8 @@ public:
     // 带位数的特殊构造，用于反序列化的场景
     BloomFilter(size_t expected_elements, double false_positive_rate, size_t num_bits);
 
-    void add(const std::string &key); // 添加元素到布隆过滤器中
+    void add(const std::string &key);                     // 添加元素到布隆过滤器中
+    bool possibly_contains(const std::string &key) const; // 判断布隆过滤器中是否存在某个元素
 
     std::vector<uint8_t> encode(); // 序列号化数组为字节流（用于持久化存储）
 

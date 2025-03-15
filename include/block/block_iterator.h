@@ -27,4 +27,6 @@ public:
     bool operator!=(const BlockIterator &other) const;
     value_type operator*() const;
     bool is_end();
+
+    void update_current() const;
 };

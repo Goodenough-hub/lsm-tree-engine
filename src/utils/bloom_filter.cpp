@@ -33,6 +33,21 @@ void BloomFilter::add(const std::string &key)
     }
 }
 
+// 判断bloom_filter中是否有这个元素
+bool BloomFilter::possibly_contains(const std::string &key) const
+{
+    // 计算哈希值对应的位索引
+    // 双重哈希法，通过组合两个基础哈希生成多个哈希值
+    for (size_t i = 0; i < num_hashes_; i++)
+    {
+        if (!bits_[hash(key, i)])
+        {
+            return false; // 如果有一个位为false，则认为元素不存在
+        }
+    }
+    return true;
+}
+
 // 基础哈希函数1（使用标准哈希）
 size_t BloomFilter::hash1(const std::string &key) const
 {
