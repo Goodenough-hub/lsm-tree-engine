@@ -28,6 +28,7 @@ class HeapIterator
 public:
     HeapIterator() = default;
     HeapIterator(std::vector<SearchItem> item_vec);
+    value_type operator*() const;
     virtual bool operator==(const HeapIterator &rhs) const;
     virtual bool operator!=(const HeapIterator &rhs) const;
     HeapIterator &operator++();

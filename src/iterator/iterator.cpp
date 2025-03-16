@@ -88,6 +88,12 @@ HeapIterator &HeapIterator::operator++()
     return *this;
 }
 
+HeapIterator::value_type HeapIterator::operator*() const
+{
+    // 定义了HeapIterator类中解引用操作符*的行为，返回堆顶元素的键值对。
+    return std::make_pair(items.top().key, items.top().value);
+}
+
 HeapIterator::pointer HeapIterator::operator->() const
 {
     update_current();

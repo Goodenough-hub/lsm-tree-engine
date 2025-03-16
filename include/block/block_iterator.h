@@ -25,6 +25,7 @@ public:
 
     bool operator==(const BlockIterator &other) const;
     bool operator!=(const BlockIterator &other) const;
+    BlockIterator::pointer operator->() const;
     value_type operator*() const;
     bool is_end();
 

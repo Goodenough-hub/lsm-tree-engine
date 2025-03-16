@@ -44,10 +44,13 @@ public:
     // 构建SST
     std::shared_ptr<SST> flush_last(SSTBuilder &builder, std::string &sst_path, size_t sst_id, std::shared_ptr<BlockCache> block_cache);
 
+    void frozen_cur_table();
+
 private:
     // 不加锁的版本
     void put_(const std::string &key, const std::string &value);
     void remove_(const std::string &key);
     std::optional<std::string> cur_get_(const std::string &key);
     std::optional<std::string> frozen_get_(const std::string &key);
+    void frozen_cur_table_();
 };

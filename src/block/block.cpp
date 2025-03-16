@@ -3,6 +3,9 @@
 #include <stdexcept>
 #include <vector>
 #include <optional>
+
+Block::Block(size_t capacity) : capacity(capacity) {}
+
 std::vector<uint8_t> Block::encode()
 {
     // 计算总大小
@@ -197,4 +200,38 @@ int Block::compare_key(size_t offset, const std::string &target)
     std::string key = get_key_at(offset);
 
     return key.compare(target);
+}
+
+std::string Block::get_first_key()
+{
+    if (data.empty() || offsets.empty())
+    {
+        return "";
+    }
+
+    // 读取第一个key
+    uint16_t key_len;
+    memcpy(&key_len, data.data(), sizeof(uint16_t)); // 从data的起始位置读取一个uint16_t类型的值作为key的长度。
+
+    return std::string(reinterpret_cast<const char *>(data.data() + sizeof(uint16_t)), key_len); // 根据读取的长度，从data中提取对应的字节序列并转换为字符串返回。
+}
+
+std::optional<std::string> Block::get_value_binary(const std::string &key)
+{
+    auto idx = get_idx_binary(key);
+    if (idx.has_value())
+    {
+        return get_value_at(offsets[idx.value()]);
+    }
+    return std::nullopt;
+}
+
+BlockIterator Block::begin()
+{
+    return BlockIterator(shared_from_this(), 0);
+}
+
+BlockIterator Block::end()
+{
+    return BlockIterator(shared_from_this(), offsets.size());
 }

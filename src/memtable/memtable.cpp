@@ -50,9 +50,8 @@ void Memtable::remove_batch(const std::vector<std::string> &keys)
 
 void Memtable::clear()
 {
-    // ! 为了避免死锁, 需要按照顺序加锁, 先获取 cur_mtx 再获取 frozen_mtx
-    std::unique_lock<std::shared_mutex> lock1(cur_mtx);
-    std::unique_lock<std::shared_mutex> lock2(frozen_mtx);
+    std::unique_lock<std::shared_mutex> lock1(frozen_mtx);
+    std::unique_lock<std::shared_mutex> lock2(cur_mtx);
     frozen_tables.clear();
     current_table->clear();
     frozen_bytes = 0;
@@ -80,8 +79,9 @@ std::optional<std::string> Memtable::get(const std::string &key)
 std::vector<std::optional<std::string>> Memtable::get_batch(const std::vector<std::string> &keys)
 {
     // 优先级较高，持有两把锁
-    std::shared_lock<std::shared_mutex> lock1(cur_mtx);
-    std::shared_lock<std::shared_mutex> lock2(frozen_mtx);
+    // 先上frozen_mtx锁，再上cur_mtx锁。是为了避免死锁
+    std::shared_lock<std::shared_mutex> lock1(frozen_mtx);
+    std::shared_lock<std::shared_mutex> lock2(cur_mtx);
 
     std::vector<std::optional<std::string>> results;
 
@@ -127,10 +127,12 @@ std::optional<std::string> Memtable::frozen_get_(const std::string &key)
 
 size_t Memtable::get_cur_size()
 {
+    std::shared_lock<std::shared_mutex> lock(cur_mtx);
     return current_table->get_size();
 }
 size_t Memtable::get_frozen_size()
 {
+    std::shared_lock<std::shared_mutex> lock(frozen_mtx);
     return frozen_bytes;
 }
 size_t Memtable::get_total_size()
@@ -138,12 +140,28 @@ size_t Memtable::get_total_size()
     return get_cur_size() + get_frozen_size();
 }
 
+void Memtable::frozen_cur_table()
+{
+    std::unique_lock<std::shared_mutex> lock1(frozen_mtx);
+    std::unique_lock<std::shared_mutex> lock2(cur_mtx);
+    frozen_cur_table_();
+}
+
+void Memtable::frozen_cur_table_()
+{
+    frozen_bytes += current_table->get_size();
+    frozen_tables.push_front(std::move(current_table)); // 最近插入的表插入队头
+    current_table = std::make_shared<SkipList>();
+}
 std::shared_ptr<SST> Memtable::flush_last(SSTBuilder &builder, std::string &sst_path, size_t sst_id, std::shared_ptr<BlockCache> block_cache)
 {
+    std::unique_lock<std::shared_mutex> lock1(frozen_mtx);
     if (frozen_tables.empty())
     {
         // 如果为空，将活跃表刷入
         // 活跃表为空，直接返回
+
+        std::unique_lock<std::shared_mutex> lock2(cur_mtx);
         if (current_table->get_size() == 0)
         {
             return nullptr;
@@ -170,6 +188,9 @@ std::shared_ptr<SST> Memtable::flush_last(SSTBuilder &builder, std::string &sst_
 
 HeapIterator Memtable::begin()
 {
+    std::shared_lock<std::shared_mutex> lock1(frozen_mtx);
+    std::shared_lock<std::shared_mutex> lock2(cur_mtx);
+
     std::vector<SearchItem> item_vec;
     for (auto iter = current_table->begin(); iter != current_table->end(); iter++)
     {

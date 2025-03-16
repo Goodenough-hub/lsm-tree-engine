@@ -39,6 +39,11 @@ public:
     SstIterator end();
 
     size_t find_block_idx(const std::string &key); // 返回-1表示没找到
+
+    std::string get_first_key();
+    std::string get_last_key();
+    size_t sst_size() const;
+    size_t get_sst_id() const;
 };
 
 class SSTBuilder
@@ -53,7 +58,7 @@ private:
 
 public:
     std::shared_ptr<BloomFilter> bloom_filter;
-    SSTBuilder(size_t block_size);
+    SSTBuilder(size_t block_size, bool with_bloom);
     void add(const std::string &key, const std::string &value);
     size_t estimated_size() const;
     void finish_block(); // 当前block被写满，然后清空进行下一个block的编码

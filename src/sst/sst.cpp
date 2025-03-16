@@ -1,8 +1,12 @@
 #include "../../include/sst/sst.h"
 #include "../../include/const.h"
 
-SSTBuilder::SSTBuilder(size_t block_size) : block_size(block_size)
+SSTBuilder::SSTBuilder(size_t block_size, bool with_bloom) : block_size(block_size)
 {
+    if (with_bloom)
+    {
+        this->bloom_filter = std::make_shared<BloomFilter>(BLOOM_FILTER_EXPEXTED_SIZE, BLOOM_FILTER_EXPEXTED_ERROR_RATE);
+    }
     meta_entries.clear();
     data.clear();
     first_key.clear();
@@ -81,14 +85,12 @@ std::shared_ptr<SST> SSTBuilder::build(size_t sst_id, const std::string &path, s
 
     // 3.布隆过滤器的优化
     uint32_t bloom_offset = file_content.size();
-    if (this->bloom_filter == nullptr)
+    if (this->bloom_filter != nullptr)
     {
-        this->bloom_filter = std::make_shared<BloomFilter>(BLOOM_FILTER_EXPEXTED_SIZE, BLOOM_FILTER_EXPEXTED_ERROR_RATE);
+        // 需要一个bloom_filter的偏移量
+        auto bf_data = bloom_filter->encode();
+        file_content.insert(file_content.end(), bf_data.begin(), bf_data.end());
     }
-
-    // 需要一个bloom_filter的偏移量
-    auto bf_data = bloom_filter->encode();
-    file_content.insert(file_content.end(), bf_data.begin(), bf_data.end());
 
     file_content.resize(file_content.size() + sizeof(uint32_t) * 2);
 
@@ -238,4 +240,24 @@ size_t SST::find_block_idx(const std::string &key)
     }
 
     return left;
+}
+
+std::string SST::get_first_key()
+{
+    return first_key;
+}
+
+std::string SST::get_last_key()
+{
+    return last_key;
+}
+
+size_t SST::sst_size() const
+{
+    return file.size();
+}
+
+size_t SST::get_sst_id() const
+{
+    return sst_id;
 }

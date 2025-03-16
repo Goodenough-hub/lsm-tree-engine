@@ -48,6 +48,12 @@ bool BlockIterator::operator!=(const BlockIterator &other) const
     return !(*this == other);
 }
 
+BlockIterator::pointer BlockIterator::operator->() const
+{
+    update_current();        // 更新当前状态。
+    return &(*cached_value); // 返回缓存值的指针。
+}
+
 BlockIterator::value_type BlockIterator::operator*() const
 {
     if (!block || current_index >= block->size())

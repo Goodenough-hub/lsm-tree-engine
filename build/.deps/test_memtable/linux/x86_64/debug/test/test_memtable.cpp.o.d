@@ -1,9 +1,9 @@
 {
-    depfiles = "test_memtable.o: test/test_memtable.cpp  test/../include/memtable/memtable.h  test/../include/memtable/../skiplist/skiplist.h  test/../include/memtable/../../include/iterator/iterator.h  test/../include/memtable/../sst/sst.h  test/../include/memtable/../sst/../block/block.h  test/../include/memtable/../sst/../block/block_iterator.h  test/../include/memtable/../sst/../block/blockmeta.h  test/../include/memtable/../sst/../block/block_cache.h  test/../include/memtable/../sst/../utils/file.h  test/../include/memtable/../sst/../utils/mmap_file.h  test/../include/memtable/../sst/../utils/bloom_filter.h  test/../include/memtable/../sst/sst_iterator.h\
-",
     files = {
         "test/test_memtable.cpp"
     },
+    depfiles = "test_memtable.o: test/test_memtable.cpp  test/../include/memtable/memtable.h  test/../include/memtable/../skiplist/skiplist.h  test/../include/memtable/../../include/iterator/iterator.h  test/../include/memtable/../sst/sst.h  test/../include/memtable/../sst/../block/block.h  test/../include/memtable/../sst/../block/block_iterator.h  test/../include/memtable/../sst/../block/blockmeta.h  test/../include/memtable/../sst/../block/block_cache.h  test/../include/memtable/../sst/../utils/file.h  test/../include/memtable/../sst/../utils/mmap_file.h  test/../include/memtable/../sst/../utils/bloom_filter.h  test/../include/memtable/../sst/sst_iterator.h\
+",
     depfiles_format = "gcc",
     values = {
         "/usr/bin/gcc",
