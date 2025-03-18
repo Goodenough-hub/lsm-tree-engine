@@ -46,12 +46,14 @@ void BlockMeta::encode_meta_to_slice(std::vector<BlockMeta> &meta_entries, std::
         memcpy(ptr, &first_key_len, sizeof(uint16_t));
         ptr += sizeof(uint16_t);
         memcpy(ptr, meta.first_key.data(), first_key_len);
+        ptr += first_key_len;
 
         // last_key_len和last_key
         uint16_t last_key_len = meta.last_key.size();
         memcpy(ptr, &last_key_len, sizeof(uint16_t));
         ptr += sizeof(uint16_t);
         memcpy(ptr, meta.last_key.data(), last_key_len);
+        ptr += last_key_len;
     }
 
     // 计算并写入hash

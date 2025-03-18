@@ -1,10 +1,5 @@
 {
     depfiles_format = "gcc",
-    files = {
-        "src/skiplist/skiplist.cpp"
-    },
-    depfiles = "skiplist.o: src/skiplist/skiplist.cpp  src/skiplist/../../include/skiplist/skiplist.h\
-",
     values = {
         "/usr/bin/gcc",
         {
@@ -14,5 +9,10 @@
             "-std=c++20",
             "-Iinclude"
         }
+    },
+    depfiles = "skiplist.o: src/skiplist/skiplist.cpp  src/skiplist/../../include/skiplist/skiplist.h\
+",
+    files = {
+        "src/skiplist/skiplist.cpp"
     }
 }

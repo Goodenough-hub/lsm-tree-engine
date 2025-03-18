@@ -38,6 +38,24 @@ target("sst")
     add_deps("block", "utils")
     add_includedirs("include", {public = true})
 
+target("engine")
+     set_kind("static") -- 静态库
+     add_files("src/engine/*.cpp")
+     add_deps("block", "memtable")
+     add_includedirs("include", {public = true})
+ 
+ target("lsm_shared")
+     set_kind("shared") -- 动态链接库
+     add_files("src/**.cpp")
+     add_includedirs("include", {public = true})
+     set_targetdir("$(buildir)/lib") -- 指定编译输出到build/lib目录下
+ 
+     -- 安装头文件和动态链接库
+     on_install(function (target) 
+         os.cp("include", path.join(target:installdir(), "include/lsm")) -- 安装头文件到include/lsm
+         os.cp(target:targetfile(), path.join(target:installdir(), "lib")) -- 安装动态库到lib目录
+     end)
+
 --- 单元测试
 
 target("test_skiplist")
@@ -81,3 +99,10 @@ target("test_block_cache")
     add_files("test/test_block_cache.cpp")
     add_deps("block")
     add_packages("gtest")
+
+target("test_engine")
+     set_kind("binary")
+     set_group("tests")
+     add_files("test/test_engine.cpp")
+     add_deps("engine")
+     add_packages("gtest")

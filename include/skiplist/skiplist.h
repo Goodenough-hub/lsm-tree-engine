@@ -33,7 +33,7 @@ private:
     std::shared_ptr<SkipListNode> head; // 跳表的头节点
     int max_level;                      // 跳表的最大层数
     int current_level;                  // 当前跳表的层数
-    size_t size_bytes;
+    size_t size_bytes = 0;
 
     std::random_device rd;
     std::uniform_int_distribution<> dis_01;

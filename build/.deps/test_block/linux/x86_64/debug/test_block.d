@@ -1,4 +1,8 @@
 {
+    files = {
+        "build/.objs/test_block/linux/x86_64/debug/test/test_block.cpp.o",
+        "build/linux/x86_64/debug/libblock.a"
+    },
     values = {
         "/usr/bin/g++",
         {
@@ -10,9 +14,5 @@
             "-lblock",
             "-lpthread"
         }
-    },
-    files = {
-        "build/.objs/test_block/linux/x86_64/debug/test/test_block.cpp.o",
-        "build/linux/x86_64/debug/libblock.a"
     }
 }

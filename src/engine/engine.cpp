@@ -1,10 +1,10 @@
-#include "../../include/engine/engin.h"
+#include "../../include/engine/engine.h"
 #include "../../include/const.h"
 #include <sstream>
 #include <iomanip>
 #include <filesystem>
 
-LSMEngine::LSMEngine(const std::string path)
+LSMEngine::LSMEngine(const std::string path) : data_dir(path)
 {
     block_cache = std::make_shared<BlockCache>(LSM_BLOCK_CACHE_CAPACITY, LSM_BLOCK_CACHE_K);
 
@@ -49,11 +49,19 @@ LSMEngine::LSMEngine(const std::string path)
     }
 }
 
+LSMEngine::~LSMEngine()
+{
+    while (memtable.get_total_size() > 0)
+    {
+        // 刷盘
+        flush();
+    }
+}
 void LSMEngine::put(const std::string &key, const std::string &value)
 {
     memtable.put(key, value);
 
-    if (memtable.get_cur_size() > LSM_TOTAL_MEM_SIZE_LIMIT)
+    if (memtable.get_cur_size() >= LSM_TOTAL_MEM_SIZE_LIMIT)
     {
         // 如果memtable太大就需要刷盘
         flush();
@@ -66,12 +74,15 @@ std::optional<std::string> LSMEngine::get(const std::string &key)
     auto value = memtable.get(key);
     if (value.has_value())
     {
-        return value;
-    }
-    else
-    {
-        // 删除标记
-        return std::nullopt;
+        if (value->size() > 0)
+        {
+            return value;
+        }
+        else
+        {
+            // 删除标记
+            return std::nullopt;
+        }
     }
 
     // 2. l0_sst查询
@@ -95,6 +106,16 @@ std::optional<std::string> LSMEngine::get(const std::string &key)
     return std::nullopt;
 }
 
+void LSMEngine::remove(const std::string &key)
+{
+    memtable.remove(key);
+    if (memtable.get_cur_size() >= LSM_TOTAL_MEM_SIZE_LIMIT)
+    {
+        // 如果memtable太大就需要刷盘
+        flush();
+    }
+}
+
 std::string LSMEngine::get_sst_path(size_t sst_id)
 {
     // sst的文件格式：data_dir/sst_<sst_id>
@@ -114,11 +135,11 @@ void LSMEngine::flush()
     size_t new_sst_id = l0_sst_ids.empty() ? 0 : l0_sst_ids.front() + 1;
 
     // 2.构建SST
-    SSTBuilder builder(LSM_BLOCK_MEM_LIMIT);
+    SSTBuilder builder(LSM_BLOCK_MEM_LIMIT, true);
 
     // 3.将Memtable中的最旧的一个table(skiplist)写入SST
     auto path = get_sst_path(new_sst_id);
-    auto new_sst = memtable.flush_last(builder, path, new_sst_id);
+    auto new_sst = memtable.flush_last(builder, path, new_sst_id, this->block_cache);
 
     // 4.更新内存索引
     ssts[new_sst_id] = new_sst;

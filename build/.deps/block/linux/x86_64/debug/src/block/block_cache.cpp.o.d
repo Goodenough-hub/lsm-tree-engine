@@ -1,10 +1,5 @@
 {
-    depfiles = "build/.objs/block/linux/x86_64/debug/src/block/block_cache.cpp.o:  src/block/block_cache.cpp src/block/../../include/block/block_cache.h  src/block/../../include/block/block_iterator.h\
-",
     depfiles_format = "gcc",
-    files = {
-        "src/block/block_cache.cpp"
-    },
     values = {
         "/usr/bin/gcc",
         {
@@ -14,5 +9,10 @@
             "-std=c++20",
             "-Iinclude"
         }
+    },
+    depfiles = "block_cache.o: src/block/block_cache.cpp  src/block/../../include/block/block_cache.h  src/block/../../include/block/block_iterator.h\
+",
+    files = {
+        "src/block/block_cache.cpp"
     }
 }

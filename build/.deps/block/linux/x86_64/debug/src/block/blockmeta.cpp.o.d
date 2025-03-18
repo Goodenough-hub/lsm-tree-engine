@@ -10,9 +10,9 @@
             "-Iinclude"
         }
     },
+    depfiles = "blockmeta.o: src/block/blockmeta.cpp  src/block/../../include/block/blockmeta.h\
+",
     files = {
         "src/block/blockmeta.cpp"
-    },
-    depfiles = "blockmeta.o: src/block/blockmeta.cpp  src/block/../../include/block/blockmeta.h\
-"
+    }
 }
