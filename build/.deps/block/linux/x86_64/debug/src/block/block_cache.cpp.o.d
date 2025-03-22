@@ -1,4 +1,6 @@
 {
+    depfiles = "block_cache.o: src/block/block_cache.cpp  src/block/../../include/block/block_cache.h  src/block/../../include/block/block_iterator.h\
+",
     depfiles_format = "gcc",
     values = {
         "/usr/bin/gcc",
@@ -10,8 +12,6 @@
             "-Iinclude"
         }
     },
-    depfiles = "block_cache.o: src/block/block_cache.cpp  src/block/../../include/block/block_cache.h  src/block/../../include/block/block_iterator.h\
-",
     files = {
         "src/block/block_cache.cpp"
     }

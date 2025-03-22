@@ -1,4 +1,6 @@
 {
+    depfiles = "iterator.o: src/iterator/iterator.cpp  src/iterator/../../include/iterator/iterator.h\
+",
     depfiles_format = "gcc",
     values = {
         "/usr/bin/gcc",
@@ -10,8 +12,6 @@
             "-Iinclude"
         }
     },
-    depfiles = "iterator.o: src/iterator/iterator.cpp  src/iterator/../../include/iterator/iterator.h\
-",
     files = {
         "src/iterator/iterator.cpp"
     }

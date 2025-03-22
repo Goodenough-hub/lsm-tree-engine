@@ -5,6 +5,7 @@ set_languages("c++20")
 
 add_rules("mode.debug", "mode.release")
 add_requires("gtest")
+add_requires("muduo")
 
 target("utils")
     set_kind("static") -- 静态库
@@ -42,6 +43,12 @@ target("engine")
      set_kind("static") -- 静态库
      add_files("src/engine/*.cpp")
      add_deps("block", "memtable")
+     add_includedirs("include", {public = true})
+
+target("redis_wrapper")
+     set_kind("static") -- 静态库
+     add_files("src/redis_wrapper/*.cpp")
+     add_deps("engine")
      add_includedirs("include", {public = true})
  
  target("lsm_shared")
@@ -106,3 +113,10 @@ target("test_engine")
      add_files("test/test_engine.cpp")
      add_deps("engine")
      add_packages("gtest")
+
+target("server")
+    set_kind("binary")
+    add_files("server/src/*.cpp")
+    add_deps("redis_wrapper")
+    add_packages("muduo")
+    set_targetdir("$(buildir)/bin")

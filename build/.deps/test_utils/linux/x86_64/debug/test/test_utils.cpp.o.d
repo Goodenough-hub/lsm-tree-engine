@@ -1,4 +1,6 @@
 {
+    depfiles = "test_utils.o: test/test_utils.cpp test/../include/utils/file.h  test/../include/utils/mmap_file.h\
+",
     depfiles_format = "gcc",
     values = {
         "/usr/bin/gcc",
@@ -12,8 +14,6 @@
             "/home/fangming/.xmake/packages/g/gtest/v1.15.2/aea99fd8f63a47f0a0b9fe284bee1bfa/include"
         }
     },
-    depfiles = "test_utils.o: test/test_utils.cpp test/../include/utils/file.h  test/../include/utils/mmap_file.h\
-",
     files = {
         "test/test_utils.cpp"
     }

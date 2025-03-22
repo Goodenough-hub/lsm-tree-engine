@@ -10,6 +10,7 @@
         "build/.objs/lsm_shared/linux/x86_64/debug/src/sst/sst.cpp.o",
         "build/.objs/lsm_shared/linux/x86_64/debug/src/iterator/iterator.cpp.o",
         "build/.objs/lsm_shared/linux/x86_64/debug/src/engine/engine.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/debug/src/redis_wrapper/redis_wrapper.cpp.o",
         "build/.objs/lsm_shared/linux/x86_64/debug/src/utils/mmap_file.cpp.o",
         "build/.objs/lsm_shared/linux/x86_64/debug/src/utils/bloom_filter.cpp.o",
         "build/.objs/lsm_shared/linux/x86_64/debug/src/utils/std_file.cpp.o",
