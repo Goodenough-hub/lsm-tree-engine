@@ -226,6 +226,98 @@ std::optional<std::string> Block::get_value_binary(const std::string &key)
     return std::nullopt;
 }
 
+// 返回的是第一个满足谓词的位置，和最后一个满足谓词位置的下一个位置
+// 左闭右开区间
+// predicated 返回值：
+// 0：满足条件
+// >0：不满足谓词，需要向右移动
+// <0：不满足谓词，需要向左移动
+std::optional<std::pair<std::shared_ptr<BlockIterator>, std::shared_ptr<BlockIterator>>> Block::get_monotony_predicate(std::function<int(const std::string &)> predicate)
+{
+    // 如果offsets为空，则表示当前块中没有数据，直接返回
+    if (offsets.empty())
+    {
+        return std::nullopt;
+    }
+
+    // 第一次二分查找到第一个满足谓词的位置
+    int left = 0;
+    int right = offsets.size() - 1;
+    int first = -1;       // 真正的区间的起始位置
+    int first_first = -1; // 第一找到的谓词位置
+
+    while (left <= right)
+    {
+        int mid = left + (right - left) / 2;
+        size_t mid_offset = offsets[mid];
+
+        auto mid_key = get_key_at(mid_offset);
+        int direction = predicate(mid_key);
+
+        if (direction < 0)
+        {
+            // 目标在mid左侧
+            right = mid - 1;
+        }
+        else if (direction > 0)
+        {
+            // 在目标mid右侧
+            left = mid + 1;
+        }
+        else
+        {
+            // 目标在mid位置
+            first = mid;
+            if (first_first == -1)
+            {
+                first_first = mid;
+            }
+            // 继续判断左边是否符合
+            right = mid - 1;
+        }
+    }
+
+    if (first == -1)
+    {
+        return std::nullopt;
+    }
+
+    // 继续找到最后一个满足谓词的位置
+    left = first_first;
+    right = offsets.size() - 1;
+    int last = -1;
+    while (left <= right)
+    {
+        int mid = left + (right - left) / 2;
+        size_t mid_offset = offsets[mid];
+
+        auto mid_key = get_key_at(mid_offset);
+        int direction = predicate(mid_key);
+
+        if (direction < 0)
+        {
+            // 目标在mid左侧
+            right = mid - 1;
+        }
+        else if (direction > 0)
+        {
+            // 目标在mid右侧
+            throw std::runtime_error("block is not sorted");
+        }
+        else
+        {
+            // 目标在mid位置
+            last = mid;
+            // 继续判断右边是否符合
+            left = mid + 1;
+        }
+    }
+    auto it_begin = std::make_shared<BlockIterator>(shared_from_this(), last);
+    auto it_end = std::make_shared<BlockIterator>(shared_from_this(), last + 1);
+
+    return std::make_pair(it_begin, it_end);
+}
+
 BlockIterator Block::begin()
 {
     return BlockIterator(shared_from_this(), 0);

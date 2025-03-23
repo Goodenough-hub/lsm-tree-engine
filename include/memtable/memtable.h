@@ -31,7 +31,7 @@ public:
     HeapIterator begin();
     HeapIterator end();
 
-    // 补全谓词查询
+    // 谓词查询
     std::optional<std::pair<HeapIterator, HeapIterator>> iter_monotony_predicate(std::function<int(const std::string &)> predicate);
 
     std::optional<std::string> get(const std::string &key);

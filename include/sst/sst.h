@@ -13,6 +13,7 @@ class SSTBuilder;
 class SstIterator;
 class SST : public std::enable_shared_from_this<SST>
 {
+    friend std::optional<std::pair<SstIterator, SstIterator>> sst_iters_monotony_predicate(std::shared_ptr<SST> sst, std::function<int(const std::string &)> predicate);
     friend class SSTBuilder;
 
 private:

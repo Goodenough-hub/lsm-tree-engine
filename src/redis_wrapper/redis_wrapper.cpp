@@ -224,7 +224,7 @@ std::string RedisWrapper::hset(std::vector<std::string> &args)
 
     // 更新字段列表，大key字段
     auto field_list_opt = lsm->get(args[1]);
-    auto field_list = get_fileds_from_hash_value(field_list_opt);
+    auto field_list = get_fileds_from_hash_value(field_list_opt); // 获取所有小key的字段
 
     if (std::find(field_list.begin(), field_list.end(), args[2]) == field_list.end())
     {

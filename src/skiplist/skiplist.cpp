@@ -282,47 +282,53 @@ bool SkipListIterator::is_end() const
 // }
 std::optional<std::pair<SkipListIterator, SkipListIterator>> SkipList::iters_monotony_predicate(std::function<int(const std::string &)> predicate)
 {
-  auto current = head;
+  auto current = head; // 从头节点开始遍历
+
+  // 分别用于存储区间的起始和结束迭代器，初始值为空
   SkipListIterator begin_iter(nullptr);
   SkipListIterator end_iter(nullptr);
 
-  // 从最高层开始查找
+  // 从最高层开始查找，根据谓词函数 predicate 查找第一个满足条件的节点。
   bool find1 = false;
   for (int i = current_level - 1; i >= 0; i--)
   {
     while (!find1)
     {
-      auto forward_i = current->forward[i];
-      if (forward_i == nullptr)
+      auto forward_i = current->forward[i]; // 获取当前层节点的 forward 指针
+      if (forward_i == nullptr)             // 如果前向指针为空，说明已经达到了该层的末尾
       {
         break;
       }
-      auto direction = predicate(forward_i->key);
-      if (direction == 0)
+      auto direction = predicate(forward_i->key); // 调用谓词函数判断当前节点是否满足条件。
+      if (direction == 0)                         // 如果返回值为0，表示找到满足条件的节点。
       {
-        find1 = true;
-        current = forward_i;
-        break;
+        find1 = true;        // 标记已找到
+        current = forward_i; // 更新当前节点为找到的节点。
+        break;               // 跳出循环
       }
-      else if (direction < 0)
+      else if (direction < 0) // 表示需要向右移动
       {
-        break;
+        break; // 停止当前层的查找
       }
-      else
+      else // 返回值大于0，表示需要继续向右移动。
       {
-        current = forward_i;
+        current = forward_i; // 更新当前节点为前向节点
       }
     }
   }
-  if (!find1)
+  if (!find1) // 没找到满足条件的节点，返回空结果
   {
     return std::nullopt;
   }
 
-  // 记录当前位置
+  // 此时找到的节点是第一个满足要求的节点，
+  // 最左侧满足条件的节点（即区间的起始节点）
+
+  // 记录当前位置，用于后续查找区间
   auto current_2 = current;
 
-  for (int i = current->backward.size() - 1; i >= 0; i--)
+  // 向右查找区间的结束节点。
+  for (int i = current->backward.size() - 1; i >= 0; i--) // 从高到低遍历 forward 指针。
   {
     while (true)
     {
@@ -338,7 +344,7 @@ std::optional<std::pair<SkipListIterator, SkipListIterator>> SkipList::iters_mon
         break;
       }
       auto direction = predicate(current->backward[i].lock()->key);
-      if (direction == 0)
+      if (direction == 0) // 找到满足条件的节点
       {
         current = current->backward[i].lock();
         continue;
@@ -355,7 +361,7 @@ std::optional<std::pair<SkipListIterator, SkipListIterator>> SkipList::iters_mon
     }
   }
 
-  begin_iter = SkipListIterator(current);
+  begin_iter = SkipListIterator(current); // 找左端点
 
   // 找右端点
   for (int i = current_2->forward.size() - 1; i >= 0; i--)

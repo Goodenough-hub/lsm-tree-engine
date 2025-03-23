@@ -2,12 +2,23 @@
 
 #include <memory>
 #include <optional>
+#include <functional>
 #include "../../include/block/block_iterator.h"
 
 class SST;
+class SstIterator;
+
+// 返回的是第一个满足谓词的位置, 和最后一个满足谓词位置的下一个位置
+// 左闭右开区间
+// predicated 返回值:
+// 0: 满足条件
+// >0: 不满足谓词, 需要往右移动
+// <0: 不满足谓词, 需要往左移动
+std::optional<std::pair<SstIterator, SstIterator>> sst_iters_monotony_predicate(std::shared_ptr<SST> sst, std::function<int(const std::string &)> predicate);
 
 class SstIterator
 {
+    friend std::optional<std::pair<SstIterator, SstIterator>> sst_iters_monotony_predicate(std::shared_ptr<SST> sst, std::function<int(const std::string &)> predicate);
     friend class SST;
     using value_type = std::pair<std::string, std::string>;
     using pointer = value_type *;
@@ -20,6 +31,9 @@ private:
 
     void update_current() const;
     void seek(const std::string &key);
+
+    void set_block_idx(size_t idx);
+    void set_block_it(std::shared_ptr<BlockIterator> it);
 
 public:
     SstIterator(std::shared_ptr<SST> sst) : m_sst(std::move(sst)), m_block_idx(0), cached_value(std::nullopt) {}

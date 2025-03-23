@@ -2,6 +2,7 @@
 #include <memory>
 #include <cstring>
 #include <vector>
+#include <functional>
 #include "block_iterator.h"
 
 class Block : public std::enable_shared_from_this<Block>
@@ -41,6 +42,8 @@ public:
 
     std::optional<size_t> get_idx_binary(const std::string &key);
     int compare_key(size_t offset, const std::string &target);
+
+    std::optional<std::pair<std::shared_ptr<BlockIterator>, std::shared_ptr<BlockIterator>>> get_monotony_predicate(std::function<int(const std::string &)> predicate);
 
     BlockIterator begin();
     BlockIterator end();

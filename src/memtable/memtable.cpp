@@ -57,6 +57,47 @@ void Memtable::clear()
     frozen_bytes = 0;
 }
 
+// 谓词查询
+std::optional<std::pair<HeapIterator, HeapIterator>> Memtable::iter_monotony_predicate(std::function<int(const std::string &)> predicate)
+{
+    // 汇总每个skiplist谓词查询的结果
+
+    // 加锁，并发读取
+    std::shared_lock<std::shared_mutex> lock1(frozen_mtx);
+    std::shared_lock<std::shared_mutex> lock2(cur_mtx);
+
+    std::vector<SearchItem> item_vec; // 存储满足谓词条件的查询结果。每个结果是一个SearchItem对象，包含键、值以及表的索引。
+
+    // 对活跃表的执行谓词查询
+    auto cur_result = current_table->iters_monotony_predicate(predicate);
+    if (cur_result.has_value())
+    {
+        auto [cur_begin, cur_end] = cur_result.value();
+        for (auto iter = cur_begin; iter != cur_end; iter++) // 遍历迭代器范围
+        {
+            item_vec.emplace_back(SearchItem(iter.get_key(), iter.get_value(), 0));
+        }
+    }
+
+    int table_idx = 1;
+    for (auto ft = frozen_tables.begin(); ft != frozen_tables.end(); ft++) // 遍历frozen_tables中的每个冻结表
+    {
+        auto table = *ft;
+        auto result = table->iters_monotony_predicate(predicate);
+        if (result.has_value())
+        {
+            auto [begin, end] = result.value();
+            for (auto iter = begin; iter != end; iter++)
+            {
+                item_vec.emplace_back(iter.get_key(), iter.get_value(), table_idx);
+            }
+        }
+        table_idx++;
+    }
+
+    return std::make_pair(HeapIterator(item_vec), HeapIterator());
+}
+
 std::optional<std::string> Memtable::get(const std::string &key)
 {
     // current table中找
