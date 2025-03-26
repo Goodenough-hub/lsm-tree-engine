@@ -5,6 +5,33 @@
 #include <queue>
 #include <string>
 
+enum class IteratorType
+{
+    SkipListIterator,
+    MemTableIterator,
+    SSTIterator,
+    BlockIterator,
+    HeapIterator,
+    TwoMergeIterator,
+    ConcatIterator,
+};
+
+class BaseIterator
+{
+public:
+    using value_type = std::pair<std::string, std::string>;
+    using pointer = value_type *;
+    using reference = value_type &;
+
+    virtual BaseIterator &operator++() = 0;
+    virtual bool operator==(const BaseIterator &other) const = 0;
+    virtual bool operator!=(const BaseIterator &other) const = 0;
+    virtual value_type operator*() const = 0;
+    virtual IteratorType get_type() const = 0;
+    virtual bool is_end() const = 0;
+    virtual bool is_valid() const = 0;
+};
+
 struct SearchItem
 {
     std::string key;
@@ -19,7 +46,7 @@ bool operator<(const SearchItem &a, const SearchItem &b);
 bool operator>(const SearchItem &a, const SearchItem &b);
 bool operator==(const SearchItem &a, const SearchItem &b);
 
-class HeapIterator
+class HeapIterator : public BaseIterator
 {
     using value_type = std::pair<std::string, std::string>;
     using pointer = value_type *;
@@ -28,13 +55,15 @@ class HeapIterator
 public:
     HeapIterator() = default;
     HeapIterator(std::vector<SearchItem> item_vec);
-    value_type operator*() const;
-    virtual bool operator==(const HeapIterator &rhs) const;
-    virtual bool operator!=(const HeapIterator &rhs) const;
-    HeapIterator &operator++();
-    HeapIterator operator++(int) = delete;
+    virtual value_type operator*() const override;
+    virtual bool operator==(const BaseIterator &rhs) const override;
+    virtual bool operator!=(const BaseIterator &rhs) const override;
+    virtual BaseIterator &operator++() override;
+    virtual BaseIterator operator++(int) = delete;
     virtual pointer operator->() const;
-    virtual bool is_end() const;
+    virtual IteratorType get_type() const override;
+    virtual bool is_end() const override;
+    virtual bool is_valid() const override;
 
 private:
     // 小根堆

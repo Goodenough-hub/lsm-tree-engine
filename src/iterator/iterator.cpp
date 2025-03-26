@@ -40,42 +40,50 @@ HeapIterator::HeapIterator(std::vector<SearchItem> item_vec)
     }
 }
 
-bool HeapIterator::operator==(const HeapIterator &rhs) const
+bool HeapIterator::operator==(const BaseIterator &other) const
 {
-    if (items.empty() && rhs.items.empty())
+    if (get_type() != other.get_type())
+    {
+        return false;
+    }
+    auto other2 = dynamic_cast<const HeapIterator &>(other);
+    if (items.empty() && other2.items.empty())
     {
         return true;
     }
 
-    if (items.empty() || rhs.items.empty())
+    if (items.empty() || other2.items.empty())
     {
         return false;
     }
 
-    return items.top().key == rhs.items.top().key && items.top().value == rhs.items.top().value;
+    return items.top().key == other2.items.top().key && items.top().value == other2.items.top().value;
 }
 
-bool HeapIterator::operator!=(const HeapIterator &rhs) const
+bool HeapIterator::operator!=(const BaseIterator &rhs) const
 {
     return !(*this == rhs);
 }
 
-HeapIterator &HeapIterator::operator++()
+BaseIterator &HeapIterator::operator++() // 前置++
 {
+    // 检查堆是否为空，若为空直接返回当前迭代器
     if (items.empty())
     {
         return *this;
     }
 
+    // 弹出堆顶元素
     auto old_item = items.top();
     items.pop();
 
-    // 删除与旧元素key相同的元素
+    // 删除与旧元素（堆顶元素）key相同的元素
     while (!items.empty() && items.top().key == old_item.key)
     {
         items.pop();
     }
 
+    // 删除堆中所有value为空的元素及其key相同的元素
     while (!items.empty() && items.top().value.empty())
     {
         auto del_key = items.top().key;
@@ -88,13 +96,13 @@ HeapIterator &HeapIterator::operator++()
     return *this;
 }
 
-HeapIterator::value_type HeapIterator::operator*() const
+BaseIterator::value_type HeapIterator::operator*() const
 {
     // 定义了HeapIterator类中解引用操作符*的行为，返回堆顶元素的键值对。
     return std::make_pair(items.top().key, items.top().value);
 }
 
-HeapIterator::pointer HeapIterator::operator->() const
+BaseIterator::pointer HeapIterator::operator->() const
 {
     update_current();
     return current.get(); // 获取原始指针
@@ -115,4 +123,14 @@ void HeapIterator::update_current() const
 bool HeapIterator::is_end() const
 {
     return items.empty();
+}
+
+bool HeapIterator::is_valid() const
+{
+    return !items.empty();
+}
+
+IteratorType HeapIterator::get_type() const
+{
+    return IteratorType::HeapIterator;
 }
