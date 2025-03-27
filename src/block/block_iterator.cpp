@@ -17,7 +17,7 @@ BlockIterator::BlockIterator(std::shared_ptr<Block> b, const std::string &key) :
     }
 }
 
-BlockIterator &BlockIterator::operator++()
+BaseIterator &BlockIterator::operator++()
 {
     if (block && current_index < block->offsets.size())
     {
@@ -27,23 +27,28 @@ BlockIterator &BlockIterator::operator++()
     return *this;
 }
 
-bool BlockIterator::operator==(const BlockIterator &other) const
+bool BlockIterator::operator==(const BaseIterator &other) const
 {
-    if (block == nullptr && other.block == nullptr)
+    if (other.get_type() != IteratorType::BlockIterator)
+    {
+        return false;
+    }
+    auto other2 = dynamic_cast<const BlockIterator &>(other);
+    if (block == nullptr && other2.block == nullptr)
     {
         return true;
     }
 
-    if (block == nullptr || other.block == nullptr)
+    if (block == nullptr || other2.block == nullptr)
     {
         return false;
     }
 
-    auto cmp = block == other.block && current_index == other.current_index;
+    auto cmp = block == other2.block && current_index == other2.current_index;
     return cmp;
 }
 
-bool BlockIterator::operator!=(const BlockIterator &other) const
+bool BlockIterator::operator!=(const BaseIterator &other) const
 {
     return !(*this == other);
 }
@@ -69,9 +74,19 @@ BlockIterator::value_type BlockIterator::operator*() const
     return *cached_value;
 }
 
-bool BlockIterator::is_end()
+bool BlockIterator::is_end() const
 {
     return current_index == block->offsets.size();
+}
+
+bool BlockIterator::is_valid() const
+{
+    return !(current_index == block->offsets.size());
+}
+
+IteratorType BlockIterator::get_type() const
+{
+    return IteratorType::BlockIterator;
 }
 
 void BlockIterator::update_current() const

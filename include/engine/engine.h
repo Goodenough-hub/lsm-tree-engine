@@ -3,10 +3,12 @@
 #include "../memtable/memtable.h"
 #include "../block/block_cache.h"
 #include "../sst/sst.h"
+#include "two_merge_iterator.h"
 #include <memory>
 #include <shared_mutex>
 #include <cstring>
 #include <unordered_map>
+#include <optional>
 
 class LSMEngine
 {
@@ -30,4 +32,6 @@ public:
     void put(const std::string &key, const std::string &value);
     std::optional<std::string> get(const std::string &key);
     void remove(const std::string &key);
+
+    std::optional<std::pair<TwoMergeIterator, TwoMergeIterator>> iter_monotony_predicate(std::function<int(const std::string &)> predicate);
 };

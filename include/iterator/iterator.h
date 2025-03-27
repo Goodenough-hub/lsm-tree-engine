@@ -8,7 +8,7 @@
 enum class IteratorType
 {
     SkipListIterator,
-    MemTableIterator,
+    BlockIterator,
     SSTIterator,
     BlockIterator,
     HeapIterator,

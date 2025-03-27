@@ -4,6 +4,7 @@
 #include <optional>
 #include <functional>
 #include "../../include/block/block_iterator.h"
+#include "../../include/iterator/iterator.h"
 
 class SST;
 class SstIterator;
@@ -16,7 +17,7 @@ class SstIterator;
 // <0: 不满足谓词, 需要往左移动
 std::optional<std::pair<SstIterator, SstIterator>> sst_iters_monotony_predicate(std::shared_ptr<SST> sst, std::function<int(const std::string &)> predicate);
 
-class SstIterator
+class SstIterator : public BaseIterator
 {
     friend std::optional<std::pair<SstIterator, SstIterator>> sst_iters_monotony_predicate(std::shared_ptr<SST> sst, std::function<int(const std::string &)> predicate);
     friend class SST;
@@ -38,12 +39,16 @@ private:
 public:
     SstIterator(std::shared_ptr<SST> sst) : m_sst(std::move(sst)), m_block_idx(0), cached_value(std::nullopt) {}
     SstIterator(std::shared_ptr<SST> sst, const std::string &key);
-    SstIterator &operator++();
+
+    virtual BaseIterator &operator++() override;
     SstIterator operator++(int) = delete; // 方便后续虚函数的实现
 
-    bool operator==(const SstIterator &other) const;
-    bool operator!=(const SstIterator &other) const;
-    value_type operator*() const;
+    virtual bool operator==(const BaseIterator &other) const override;
+    virtual bool operator!=(const BaseIterator &other) const override;
+    virtual value_type operator*() const;
+    virtual IteratorType get_type() const override;
+    virtual bool is_end() const override;
+    virtual bool is_valid() const override;
+
     pointer operator->() const;
-    bool is_valid();
 };

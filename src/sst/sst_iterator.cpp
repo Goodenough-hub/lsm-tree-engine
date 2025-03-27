@@ -118,7 +118,7 @@ void SstIterator::seek(const std::string &key)
         return;
     }
 }
-SstIterator &SstIterator::operator++()
+BaseIterator &SstIterator::operator++()
 {
     if (!m_block_iter)
     {
@@ -147,21 +147,26 @@ SstIterator &SstIterator::operator++()
     return *this;
 }
 
-bool SstIterator::operator==(const SstIterator &other) const
+bool SstIterator::operator==(const BaseIterator &other) const
 {
-    if (m_sst != other.m_sst || m_block_idx != other.m_block_idx)
+    if (other.get_type() != get_type())
     {
         return false;
     }
-    if (!m_block_iter && !other.m_block_iter)
+    auto other2 = dynamic_cast<const SstIterator &>(other);
+    if (m_sst != other2.m_sst || m_block_idx != other2.m_block_idx)
+    {
+        return false;
+    }
+    if (!m_block_iter && !other2.m_block_iter)
     {
         return false;
     }
 
-    return *m_block_iter == *other.m_block_iter;
+    return *m_block_iter == *other2.m_block_iter;
 }
 
-bool SstIterator::operator!=(const SstIterator &other) const
+bool SstIterator::operator!=(const BaseIterator &other) const
 {
     return !(*this == other);
 }
@@ -187,4 +192,23 @@ void SstIterator::update_current() const
     {
         cached_value = *(*m_block_iter);
     }
+}
+
+IteratorType SstIterator::get_type() const
+{
+    return IteratorType::SSTIterator;
+}
+
+bool SstIterator::is_end() const
+{
+    if (!m_block_iter)
+    {
+        return true;
+    }
+    return m_block_iter->is_end();
+}
+
+bool SstIterator::is_valid() const
+{
+    return m_block_iter && !m_block_iter->is_end() && m_block_idx < m_sst->num_blocks();
 }

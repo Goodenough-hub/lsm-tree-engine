@@ -3,7 +3,56 @@
 #include <sstream>
 #include <iomanip>
 #include <filesystem>
+#include <vector>
 
+std::optional<std::pair<TwoMergeIterator, TwoMergeIterator>> LSMEngine::iter_monotony_predicate(std::function<int(const std::string &)> predicate)
+{
+    // 1.先从内存部分查询
+    auto mem_result = memtable.iter_monotony_predicate(predicate); // 从内存表查询符合单调行的结果
+
+    // 2.再从SST中查询
+    std::vector<SearchItem> item_vec; // 存储从SST收集的查询结果
+
+    // 后续实现了高层sst后需要修改这里的逻辑
+
+    // 遍历所有的SST文件，sst_id越小表示文件越旧
+    for (auto &[sst_idx, sst] : ssts) // 结构化绑定分解SST索引和对象
+    {
+        auto result = sst_iters_monotony_predicate(sst, predicate); // 在单个SST中查询
+        if (!result.has_value())                                    // 没有符合条件的结果则跳过
+        {
+            continue;
+        }
+        auto [it_begin, it_end] = result.value(); // 解包迭代器范围
+        for (; it_begin != it_end && it_begin.is_valid(); ++it_begin)
+        {
+            // 将键值对存入向量，sst_idx取负保证新文件优先级更高
+            // 越古老的sst的idx越小，我们需要让新的SST优先放在堆顶
+            // 反转符号
+            item_vec.emplace_back(it_begin->first, it_begin->second, -sst_idx);
+        }
+    }
+
+    // 3.合并结果
+    std::shared_ptr<HeapIterator> l0_iter_ptr = make_shared<HeapIterator>(item_vec);
+
+    // 4.构造返回结果
+    if (!mem_result.has_value()) // 内存表有查询结果时的处理
+    {
+        auto [mem_start, mem_end] = mem_result.value();                                 // 解包内存表迭代器
+        std::shared_ptr<HeapIterator> mem_start_ptr = std::make_shared<HeapIterator>(); // 创建智能指针
+        *mem_start_ptr = mem_start;                                                     // 复制迭代器状态 ==> 解引用
+        auto start = TwoMergeIterator(mem_start_ptr, l0_iter_ptr);                      // 合并内存和SST的迭代器
+        auto end = TwoMergeIterator();                                                  // 结束标记迭代器
+        return std::make_optional(std::make_pair(start, end));                          // 返回迭代器对
+    }
+    else // 内存表无结果时的处理
+    {
+        auto start = TwoMergeIterator(std::make_shared<HeapIterator>(), l0_iter_ptr); // 空内存迭代器
+        auto end = TwoMergeIterator();
+        return std::make_optional(std::make_pair(start, end));
+    }
+}
 LSMEngine::LSMEngine(const std::string path) : data_dir(path)
 {
     block_cache = std::make_shared<BlockCache>(LSM_BLOCK_CACHE_CAPACITY, LSM_BLOCK_CACHE_K);
