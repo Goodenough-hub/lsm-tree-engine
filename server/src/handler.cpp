@@ -46,6 +46,14 @@ OPS string2OPS(const std::string &opStr)
     {
         return OPS::HSET;
     }
+    else if (lowerOpStr == "zadd")
+    {
+        return OPS::ZADD;
+    }
+    else if (lowerOpStr == "zrange")
+    {
+        return OPS::ZRANGE;
+    }
     else
     {
         return OPS::UNKNOWN;

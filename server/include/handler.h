@@ -11,6 +11,8 @@ enum class OPS
     TTL,
     HGET,
     HSET,
+    ZADD,
+    ZRANGE,
     UNKNOWN
 };
 

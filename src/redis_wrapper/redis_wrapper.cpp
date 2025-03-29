@@ -8,6 +8,7 @@
 #include <optional> // 定义std::optional容器，用于处理可能为空的返回值（如键不存在场景）
 #include <string>
 #include <sstream>
+#include <iomanip>
 
 // 正常存储：key， value
 // 同时存储过期时间：expire_key， expire_time
@@ -27,9 +28,53 @@ std::string get_expire_time(const std::string &second_count)
 }
 
 // 小key加上前缀
-std::string get_hash_filed_key(const std::string &key, const std::string &filed)
+inline std::string get_hash_filed_key(const std::string &key, const std::string &filed)
 {
     return std::string(REDIS_HASH_HEADER) + key + "_" + filed;
+}
+
+inline std::string get_zset_key_preffix(const std::string &key)
+{
+    return REDIS_SORTED_SET_PREFIX + key + "_";
+}
+
+inline std::string get_zset_score_preffix(const std::string &key)
+{
+    return REDIS_SORTED_SET_PREFIX + key + "_SCORE_";
+}
+
+inline std::string get_zset_key_score(const std::string &key, const std::string &score)
+{
+    // 50 < 100
+    // '50' > '100'
+    // '050' < '100'
+    std::ostringstream oss;
+    oss << std::setw(REDIS_SORTED_SET_SCORE_LEN) << std::setfill('0') << score;
+    std::string formatted_score = oss.str();
+
+    std::string res = get_zset_score_preffix(key) + formatted_score;
+    return res;
+}
+
+std::string get_zset_key_elem(const std::string &key, const std::string &elem)
+{
+    return get_zset_key_preffix(key) + elem;
+}
+
+std::string get_zset_score_item(const std::string &key)
+{
+    const std::string score_preffix = "_SCORE_";
+
+    size_t score_pos = key.find(score_preffix);
+
+    if (score_pos != std::string::npos) // 未找到位置
+    {
+        return key.substr(score_pos + score_preffix.size());
+    }
+    else
+    {
+        return "";
+    }
 }
 
 // 去除大key的前缀，获得所有小key，放入数组
@@ -278,6 +323,189 @@ bool RedisWrapper::expire_hash_clean(const std::string &key, std::shared_lock<st
         }
         lsm->remove(key);        // 移除大key
         lsm->remove(expire_key); // 移除过期的key
+        return true;
+    }
+    return false;
+}
+
+// ZADD z1 95 math
+// ZADD z1 100 English
+
+// 大key：(Z1, xxx)
+// 成员的存储：每一个成员存储两次
+// 前缀标记了这个键值对是 有序集合的成员
+// 第一次存储的是(prefix_z1_ELEM_xxx, score)
+// 第二次存储的是(prefix_z1_SCORE_score_yyyy, member)
+std::string RedisWrapper::zadd(std::vector<std::string> &args)
+{
+    std::shared_lock<std::shared_mutex> rlock(redis_mtx);
+
+    auto key = args[1];
+    bool is_expired = expire_zset_clean(key, rlock); // 检查键是否过期。如果过期，则清理相关数据。
+
+    if (!is_expired)
+    {
+        rlock.unlock(); // 释放读锁
+    }
+
+    std::unique_lock<std::shared_mutex> wlock(redis_mtx); // 上写锁
+
+    std::vector<std::pair<std::string, std::string>> put_kvs; // 存储待插入的键值对
+
+    auto value = get_zset_key_preffix(key); // 直接将前缀作为value
+    if (!lsm->get(value).has_value())
+    {
+        // 大key不存在
+        put_kvs.emplace_back(key, value); // 插入格式：<大键名，大键前缀>
+    }
+
+    std::vector<std::string> remove_keys; // 删除容器
+    int added_count = 0;                  // 记录成功添加的成员数量。
+
+    // 遍历成员和分数
+    for (size_t i = 2; i < args.size(); i += 2)
+    {
+        // 从 args 中依次提取分数（score）和成员（elem）。
+        std::string score = args[i];                            // 分数
+        std::string elem = args[i + 1];                         // 成员
+        std::string key_score = get_zset_key_score(key, score); // 分数键（格式：ZSET_z1_SCORE_00095）
+        std::string key_elem = get_zset_key_elem(key, elem);    // 成员键（格式：ZSET_z1_ELEM_math）
+
+        auto query_elem = lsm->get(key_elem);
+        // 检查成员是否存在
+        if (query_elem.has_value())
+        {
+            // 将以前的旧记录删除
+            std::string original_score = query_elem.value();
+            if (original_score == score)
+            {
+                // 分数未发生变化，不需要更新
+                continue;
+            }
+
+            // 需要移除
+            // 生成旧分数键并加入删除列表
+            std::string original_key_score = get_zset_key_score(key, original_score);
+            remove_keys.emplace_back(original_key_score); // 格式：ZSET_z1_SCORE_历史分数
+        }
+
+        put_kvs.emplace_back(key_score, elem); // 存储格式：<分数键, 成员>
+        put_kvs.emplace_back(key_elem, score); // 存储格式：<成员键, 分数>
+        added_count++;                         // 更新成功计数器
+    }
+
+    // 批量删除和插入操作
+    lsm->remove_batch(remove_keys); // 删除旧分数记录
+    lsm->put_batch(put_kvs);        // 插入新记录
+
+    return ":" + std::to_string(added_count) + "\r\n"; // 返回成功添加的成员数量
+}
+
+std::string RedisWrapper::zrange(std::vector<std::string> &args)
+{
+    std::string key = args[1];      // 有序集合键名
+    int start = std::stoi(args[2]); // 起始索引（支持负数，如-1表示最后一个元素）
+    int end = std::stoi(args[3]);   // 结束索引
+
+    std::shared_lock<std::shared_mutex> rlock(redis_mtx); // 上读锁
+
+    // 过期检查：调用专用有序集合过期清理方法
+    bool is_expired = expire_zset_clean(key, rlock);
+
+    if (is_expired)
+    {
+        return "*0\r\n"; // 返回空集合响应
+    }
+
+    // 谓词查询
+    std::string preffix_score = get_zset_score_preffix(key);
+    // 执行范围查询：获取所有以prefix_score开头的键值对（有序存储）
+    auto result = lsm->iter_monotony_predicate([&preffix_score](const std::string &elem)
+                                               { return -elem.compare(0, preffix_score.size(), preffix_score); }); // 通过负数比较实现升序排序
+
+    if (!result.has_value()) // 空结果
+    {
+        return "*0\r\n";
+    }
+
+    // 解析查询结果
+    std::vector<std::pair<std::string, std::string>> elements;
+    auto [elem_begin, elem_end] = result.value();
+    for (; elem_begin != elem_end; ++elem_begin)
+    {
+        std::string key_score = elem_begin->first;          // 分数键（格式：ZSET_z1_SCORE_00095）
+        std::string elem = elem_begin->second;              // 成员值
+        std::string score = get_zset_score_item(key_score); // 从键名提取分数（"00095" -> "95"）
+        elements.emplace_back(std::make_pair(elem, score)); // 存储为 <成员, 原始分数>
+    }
+
+    // 处理负数索引（Redis兼容逻辑）
+    if (start < 0)
+    {
+        start += elements.size();
+    }
+    if (end < 0)
+    {
+        end += elements.size();
+    }
+
+    // 索引边界修正
+    if (end >= elements.size())
+    {
+        end = elements.size() - 1;
+    }
+
+    // 输入不合法
+    if (start > end)
+    {
+        return "*0\r\n";
+    }
+
+    std::ostringstream oss;
+    oss << "*" << end - start + 1 << "\r\n"; // 响应头（元素数量）
+    for (int i = start; i <= end; ++i)
+    {
+        // 按协议格式输出每个元素（当前输出分数值，若需返回成员需改为elements[i].first）
+        oss << "$" << elements[i].second.size() << "\r\n" // 值长度
+            << elements[i].second << "\r\n";              // 值内容（分数）
+    }
+    return oss.str();
+}
+
+bool RedisWrapper::expire_zset_clean(const std::string &key, std::shared_lock<std::shared_mutex> &rlock)
+{
+    std::string expire_key = get_expire_key(key); // 生成过期键名
+    auto expire_query = lsm->get(expire_key);     // 查询过期时间
+
+    if (is_expired(expire_query, nullptr))
+    {
+        // 过期了
+        rlock.unlock();                                       // 释放读锁
+        std::unique_lock<std::shared_mutex> wlock(redis_mtx); // 上写锁
+
+        lsm->remove(key);        // 大key（如 ZSET_z1）
+        lsm->remove(expire_key); // 删除过期键（如 expire_z1）
+
+        auto preffix = get_zset_key_preffix(key); // 生成有序集合成员键前缀（格式示例：ZSET_z1_）
+
+        // 查询所有以该前缀开头的键（成员键和分数键）
+        auto result_elem = lsm->iter_monotony_predicate([&preffix](const std::string &elem)
+                                                        { return -elem.compare(0, preffix.size(), preffix); });
+        if (result_elem.has_value())
+        {
+            // 如果存在匹配的键
+            // 获取键范围迭代器
+            auto [elem_begin, elem_end] = result_elem.value();
+            std::vector<std::string> remove_vec;
+
+            // 遍历所有匹配的键
+            for (; elem_begin != elem_end; ++elem_begin)
+            {
+                // 收集待删除的键名
+                remove_vec.push_back(elem_begin->first);
+            }
+            lsm->remove_batch(remove_vec); // 批量删除
+        }
         return true;
     }
     return false;

@@ -22,7 +22,7 @@ public:
     Memtable();
     ~Memtable() = default;
     void put(const std::string &key, const std::string &value);
-    void put_batch(const std::vector<std::string> &keys, const std::vector<std::string> &values);
+    void put_batch(const std::vector<std::pair<std::string, std::string>> &kvs);
     void remove(const std::string &key);
     void remove_batch(const std::vector<std::string> &keys);
     void clear();

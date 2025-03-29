@@ -117,6 +117,17 @@ void LSMEngine::put(const std::string &key, const std::string &value)
     }
 }
 
+void LSMEngine::put_batch(const std::vector<std::pair<std::string, std::string>> &kvs)
+{
+    memtable.put_batch(kvs);
+
+    if (memtable.get_total_size() >= LSM_TOTAL_MEM_SIZE_LIMIT)
+    {
+        // 如果memtable太大就需要刷盘
+        flush();
+    }
+}
+
 std::optional<std::string> LSMEngine::get(const std::string &key)
 {
     // 1.先从memtable中查找
@@ -158,6 +169,16 @@ std::optional<std::string> LSMEngine::get(const std::string &key)
 void LSMEngine::remove(const std::string &key)
 {
     memtable.remove(key);
+    if (memtable.get_cur_size() >= LSM_TOTAL_MEM_SIZE_LIMIT)
+    {
+        // 如果memtable太大就需要刷盘
+        flush();
+    }
+}
+
+void LSMEngine::remove_batch(const std::vector<std::string> &keys)
+{
+    memtable.remove_batch(keys);
     if (memtable.get_cur_size() >= LSM_TOTAL_MEM_SIZE_LIMIT)
     {
         // 如果memtable太大就需要刷盘

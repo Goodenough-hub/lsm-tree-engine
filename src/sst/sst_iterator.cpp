@@ -201,11 +201,7 @@ IteratorType SstIterator::get_type() const
 
 bool SstIterator::is_end() const
 {
-    if (!m_block_iter)
-    {
-        return true;
-    }
-    return m_block_iter->is_end();
+    return m_block_iter || m_block_idx >= m_sst->num_blocks();
 }
 
 bool SstIterator::is_valid() const

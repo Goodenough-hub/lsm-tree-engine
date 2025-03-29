@@ -30,8 +30,10 @@ public:
     LSMEngine(std::string path);
     ~LSMEngine();
     void put(const std::string &key, const std::string &value);
+    void put_batch(const std::vector<std::pair<std::string, std::string>> &kvs);
     std::optional<std::string> get(const std::string &key);
     void remove(const std::string &key);
+    void remove_batch(const std::vector<std::string> &keys);
 
     std::optional<std::pair<TwoMergeIterator, TwoMergeIterator>> iter_monotony_predicate(std::function<int(const std::string &)> predicate);
 };

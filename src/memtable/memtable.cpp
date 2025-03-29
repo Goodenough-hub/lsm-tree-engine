@@ -18,12 +18,12 @@ void Memtable::put_(const std::string &key, const std::string &value)
     current_table->put(key, value);
 }
 
-void Memtable::put_batch(const std::vector<std::string> &key, const std::vector<std::string> &value)
+void Memtable::put_batch(const std::vector<std::pair<std::string, std::string>> &kvs)
 {
     std::unique_lock<std::shared_mutex> lock(cur_mtx);
-    for (size_t i = 0; i < key.size(); i++)
+    for (size_t i = 0; i < kvs.size(); i++)
     {
-        put_(key[i], value[i]);
+        put_(kvs[i].first, kvs[i].second);
     }
 }
 

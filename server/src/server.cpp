@@ -144,6 +144,14 @@ private:
         {
             return this->redis_.hget(args);
         }
+        case OPS::ZADD:
+        {
+            return this->redis_.zadd(args);
+        }
+        case OPS::ZRANGE:
+        {
+            return this->redis_.zrange(args);
+        }
         case OPS::PING:
         {
             return "+PONG\r\n";

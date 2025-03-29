@@ -15,9 +15,16 @@ public:
     std::string ttl(std::vector<std::string> &args);
     std::string hset(std::vector<std::string> &args);
     std::string hget(std::vector<std::string> &args);
+    std::string zadd(std::vector<std::string> &args);
+    std::string zrange(std::vector<std::string> &args);
 
 private:
+    // 清理过期的哈希hash
     bool expire_hash_clean(const std::string &key,
+                           std::shared_lock<std::shared_mutex> &rlock);
+
+    // 清理过期的有序集合zset
+    bool expire_zset_clean(const std::string &key,
                            std::shared_lock<std::shared_mutex> &rlock);
 
 private:
