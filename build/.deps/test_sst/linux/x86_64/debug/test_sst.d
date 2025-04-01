@@ -1,4 +1,10 @@
 {
+    files = {
+        "build/.objs/test_sst/linux/x86_64/debug/test/test_sst.cpp.o",
+        "build/linux/x86_64/debug/libutils.a",
+        "build/linux/x86_64/debug/libblock.a",
+        "build/linux/x86_64/debug/libsst.a"
+    },
     values = {
         "/usr/bin/g++",
         {
@@ -12,11 +18,5 @@
             "-lutils",
             "-lpthread"
         }
-    },
-    files = {
-        "build/.objs/test_sst/linux/x86_64/debug/test/test_sst.cpp.o",
-        "build/linux/x86_64/debug/libutils.a",
-        "build/linux/x86_64/debug/libblock.a",
-        "build/linux/x86_64/debug/libsst.a"
     }
 }

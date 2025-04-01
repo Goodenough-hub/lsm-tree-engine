@@ -1,12 +1,4 @@
 {
-    values = {
-        "/usr/bin/g++",
-        {
-            "-shared",
-            "-m64",
-            "-fPIC"
-        }
-    },
     files = {
         "build/.objs/lsm_shared/linux/x86_64/debug/src/memtable/memtable.cpp.o",
         "build/.objs/lsm_shared/linux/x86_64/debug/src/block/blockmeta.cpp.o",
@@ -24,5 +16,13 @@
         "build/.objs/lsm_shared/linux/x86_64/debug/src/utils/bloom_filter.cpp.o",
         "build/.objs/lsm_shared/linux/x86_64/debug/src/utils/std_file.cpp.o",
         "build/.objs/lsm_shared/linux/x86_64/debug/src/utils/file.cpp.o"
+    },
+    values = {
+        "/usr/bin/g++",
+        {
+            "-shared",
+            "-m64",
+            "-fPIC"
+        }
     }
 }

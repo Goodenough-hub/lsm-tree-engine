@@ -650,10 +650,14 @@ bool RedisWrapper::expire_set_clean(const std::string &key, std::shared_lock<std
         if (result_elem.has_value())
         {
             auto [elem_begin, elem_end] = result_elem.value();
+            std::vector<std::string> remove_vec;
             for (; elem_begin != elem_end; ++elem_begin)
             {
                 remove_vec.push_back(elem_begin->first);
             }
+            lsm->remove_batch(remove_vec);
         }
+        return true;
     }
+    return false;
 }
