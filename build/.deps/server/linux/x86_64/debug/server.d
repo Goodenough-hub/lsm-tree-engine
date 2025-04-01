@@ -1,16 +1,4 @@
 {
-    files = {
-        "build/.objs/server/linux/x86_64/debug/server/src/server.cpp.o",
-        "build/.objs/server/linux/x86_64/debug/server/src/handler.cpp.o",
-        "build/linux/x86_64/debug/libutils.a",
-        "build/linux/x86_64/debug/libblock.a",
-        "build/linux/x86_64/debug/libsst.a",
-        "build/linux/x86_64/debug/libiterator.a",
-        "build/linux/x86_64/debug/libskiplist.a",
-        "build/linux/x86_64/debug/libmemtable.a",
-        "build/linux/x86_64/debug/libengine.a",
-        "build/linux/x86_64/debug/libredis_wrapper.a"
-    },
     values = {
         "/usr/bin/g++",
         {
@@ -65,5 +53,17 @@
             "-lblock",
             "-lutils"
         }
+    },
+    files = {
+        "build/.objs/server/linux/x86_64/debug/server/src/server.cpp.o",
+        "build/.objs/server/linux/x86_64/debug/server/src/handler.cpp.o",
+        "build/linux/x86_64/debug/libutils.a",
+        "build/linux/x86_64/debug/libblock.a",
+        "build/linux/x86_64/debug/libsst.a",
+        "build/linux/x86_64/debug/libiterator.a",
+        "build/linux/x86_64/debug/libskiplist.a",
+        "build/linux/x86_64/debug/libmemtable.a",
+        "build/linux/x86_64/debug/libengine.a",
+        "build/linux/x86_64/debug/libredis_wrapper.a"
     }
 }

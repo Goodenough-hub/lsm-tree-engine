@@ -38,6 +38,16 @@ inline std::string get_zset_key_preffix(const std::string &key)
     return REDIS_SORTED_SET_PREFIX + key + "_";
 }
 
+inline std::string get_set_key_preffix(const std::string &key)
+{
+    return REDIS_SET_PREFIX + key + "_";
+}
+
+inline std::string get_set_elem_key(const std::string &key, const std::string &elem)
+{
+    return REDIS_SET_PREFIX + key + "_SCORE_" + elem;
+}
+
 inline std::string get_zset_score_preffix(const std::string &key)
 {
     return REDIS_SORTED_SET_PREFIX + key + "_SCORE_";
@@ -509,4 +519,141 @@ bool RedisWrapper::expire_zset_clean(const std::string &key, std::shared_lock<st
         return true;
     }
     return false;
+}
+
+std::string RedisWrapper::sadd(std::vector<std::string> &args)
+{
+    std::string key = args[1];
+    std::shared_lock<std::shared_mutex> rlock(redis_mtx);
+
+    bool is_expired = expire_set_clean(key, rlock);
+
+    if (!is_expired)
+    {
+        rlock.unlock();
+    }
+
+    std::vector<std::pair<std::string, std::string>> put_kvs;
+
+    // 获取写锁
+    for (size_t i = 2; i < args.size(); i++)
+    {
+        std::string elem = args[i];
+        std::string elem_key = get_set_elem_key(key, elem);
+
+        if (!lsm->get(elem_key).has_value())
+        {
+            put_kvs.emplace_back(elem_key, "1");
+        }
+    }
+
+    // 更新集合大小
+    auto key_query = lsm->get(key);
+    int set_size = put_kvs.size();
+    if (key_query.has_value())
+    {
+        auto prev_size = std::stoi(key_query.value());
+        set_size += prev_size;
+    }
+    put_kvs.emplace_back(key, std::to_string(set_size));
+
+    lsm->put_batch(put_kvs);
+
+    return ":" + std::to_string(put_kvs.size() - 1) + "\r\n";
+}
+
+std::string RedisWrapper::srem(std::vector<std::string> &args)
+{
+    std::string key = args[1];
+    std::shared_lock<std::shared_mutex> rlock(redis_mtx);
+
+    bool is_expired = expire_set_clean(key, rlock);
+
+    if (is_expired) // 过期了
+    {
+        return ":0\r\n";
+    }
+
+    rlock.unlock();
+
+    std::vector<std::string> del_keys;
+
+    // 获取写锁
+    std::unique_lock<std::shared_mutex> wlock(redis_mtx);
+
+    for (size_t i = 2; i < args.size(); i++)
+    {
+        std::string elem = args[i];
+        std::string elem_key = get_set_elem_key(key, elem);
+
+        if (!lsm->get(elem_key).has_value())
+        {
+            del_keys.emplace_back(elem_key);
+        }
+    }
+
+    // 更新集合大小
+    auto key_query = lsm->get(key);
+    int set_size = -del_keys.size();
+    if (key_query.has_value())
+    {
+        auto prev_size = std::stoi(key_query.value());
+        set_size += prev_size;
+    }
+
+    lsm->put(key, std::to_string(set_size));
+    lsm->remove_batch(del_keys);
+
+    return ":" + std::to_string(del_keys.size()) + "\r\n";
+}
+
+std::string RedisWrapper::sismember(std::vector<std::string> &args)
+{
+    std::string key = args[1];
+
+    std::shared_lock<std::shared_mutex> rlock(redis_mtx);
+
+    bool is_expired = expire_set_clean(key, rlock);
+
+    if (is_expired) // 过期了
+    {
+        return ":0\r\n";
+    }
+
+    std::string elem_key = get_set_elem_key(key, args[2]);
+    if (lsm->get(elem_key).has_value())
+    {
+        return ":1\r\n";
+    }
+    else
+    {
+        return ":0\r\n";
+    }
+}
+
+bool RedisWrapper::expire_set_clean(const std::string &key, std::shared_lock<std::shared_mutex> &rlock)
+{
+    std::string expire_key = get_expire_key(key);
+    auto expire_query = lsm->get(expire_key);
+
+    if (is_expired(expire_query, nullptr))
+    {
+        rlock.unlock();
+        std::unique_lock<std::shared_mutex> wlock(redis_mtx);
+
+        lsm->remove(key); // 大key
+        lsm->remove(expire_key);
+
+        auto preffix = get_set_key_preffix(key);
+        auto result_elem = lsm->iter_monotony_predicate([&preffix](const std::string &elem)
+                                                        { return -elem.compare(0, preffix.size(), preffix); });
+        if (result_elem.has_value())
+        {
+            auto [elem_begin, elem_end] = result_elem.value();
+            for (; elem_begin != elem_end; ++elem_begin)
+            {
+                remove_vec.push_back(elem_begin->first);
+            }
+        }
+    }
 }

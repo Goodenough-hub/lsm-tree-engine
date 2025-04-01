@@ -1,13 +1,4 @@
 {
-    files = {
-        "build/.objs/test_memtable/linux/x86_64/debug/test/test_memtable.cpp.o",
-        "build/linux/x86_64/debug/libutils.a",
-        "build/linux/x86_64/debug/libblock.a",
-        "build/linux/x86_64/debug/libsst.a",
-        "build/linux/x86_64/debug/libiterator.a",
-        "build/linux/x86_64/debug/libskiplist.a",
-        "build/linux/x86_64/debug/libmemtable.a"
-    },
     values = {
         "/usr/bin/g++",
         {
@@ -24,5 +15,14 @@
             "-lutils",
             "-lpthread"
         }
+    },
+    files = {
+        "build/.objs/test_memtable/linux/x86_64/debug/test/test_memtable.cpp.o",
+        "build/linux/x86_64/debug/libutils.a",
+        "build/linux/x86_64/debug/libblock.a",
+        "build/linux/x86_64/debug/libsst.a",
+        "build/linux/x86_64/debug/libiterator.a",
+        "build/linux/x86_64/debug/libskiplist.a",
+        "build/linux/x86_64/debug/libmemtable.a"
     }
 }

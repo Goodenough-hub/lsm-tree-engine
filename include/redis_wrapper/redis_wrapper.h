@@ -17,6 +17,9 @@ public:
     std::string hget(std::vector<std::string> &args);
     std::string zadd(std::vector<std::string> &args);
     std::string zrange(std::vector<std::string> &args);
+    std::string sadd(std::vector<std::string> &args);
+    std::string srem(std::vector<std::string> &args);
+    std::string sismember(std::vector<std::string> &args);
 
 private:
     // 清理过期的哈希hash
@@ -26,6 +29,10 @@ private:
     // 清理过期的有序集合zset
     bool expire_zset_clean(const std::string &key,
                            std::shared_lock<std::shared_mutex> &rlock);
+
+    // 清理过期的无序集合set
+    bool expire_set_clean(const std::string &key,
+                          std::shared_lock<std::shared_mutex> &rlock);
 
 private:
     std::unique_ptr<LSMEngine> lsm;

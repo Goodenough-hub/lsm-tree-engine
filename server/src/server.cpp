@@ -122,35 +122,58 @@ private:
         {
         case OPS::GET:
         {
-            return this->redis_.get(args);
+            // return this->redis_.get(args);
+            return get_handle(args, this->redis_);
         }
         case OPS::SET:
         {
-            return this->redis_.set(args);
+            // return this->redis_.set(args);
+            return set_hander(args, this->redis_);
         }
         case OPS::EXPIRE:
         {
-            return this->redis_.expire(args);
+            // return this->redis_.expire(args);
+            return expire_handler(args, this->redis_);
         }
         case OPS::TTL:
         {
-            return this->redis_.ttl(args);
+            // return this->redis_.ttl(args);
+            return ttl_handler(args, this->redis_);
         }
         case OPS::HSET:
         {
-            return this->redis_.hset(args);
+            // return this->redis_.hset(args);
+            return hset_handler(args, this->redis_);
         }
         case OPS::HGET:
         {
-            return this->redis_.hget(args);
+            // return this->redis_.hget(args);
+            return hget_handler(args, this->redis_);
         }
         case OPS::ZADD:
         {
-            return this->redis_.zadd(args);
+            // return this->redis_.zadd(args);
+            return zadd_handler(args, this->redis_);
         }
         case OPS::ZRANGE:
         {
-            return this->redis_.zrange(args);
+            // return this->redis_.zrange(args);
+            return zrange_handler(args, this->redis_);
+        }
+        case OPS::SADD:
+        {
+            // return this->redis_.sadd(args);
+            return sadd_handler(args, this->redis_);
+        }
+        case OPS::SREM:
+        {
+            // return this->redis_.srem(args);
+            return srem_handler(args, this->redis_);
+        }
+        case OPS::SISMEMBER:
+        {
+            // return this->redis_.sismember(args);
+            return sismember_handler(args, this->redis_);
         }
         case OPS::PING:
         {

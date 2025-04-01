@@ -54,6 +54,18 @@ OPS string2OPS(const std::string &opStr)
     {
         return OPS::ZRANGE;
     }
+    else if (lowerOpStr == "sadd")
+    {
+        return OPS::SADD;
+    }
+    else if (lowerOpStr == "srem")
+    {
+        return OPS::SREM;
+    }
+    else if (lowerOpStr == "sismember")
+    {
+        return OPS::SISMEMBER;
+    }
     else
     {
         return OPS::UNKNOWN;
@@ -112,4 +124,49 @@ std::string hget_handler(std::vector<std::string> args, RedisWrapper &engine)
         return "-EER wrong number of arguments for 'hget' command";
     }
     return engine.hget(args);
+}
+
+std::string zadd_handler(std::vector<std::string> args, RedisWrapper &engine)
+{
+    if (args.size() < 3)
+    {
+        return "-EER wrong number of arguments for 'zadd' command";
+    }
+    return engine.zadd(args);
+}
+
+std::string zrange_handler(std::vector<std::string> args, RedisWrapper &engine)
+{
+    if (args.size() < 4)
+    {
+        return "-EER wrong number of arguments for 'zrange' command";
+    }
+    return engine.zrange(args);
+}
+
+std::string sadd_handler(std::vector<std::string> args, RedisWrapper &engine)
+{
+    if (args.size() < 3)
+    {
+        return "-EER wrong number of arguments for 'sadd' command";
+    }
+    return engine.sadd(args);
+}
+
+std::string srem_handler(std::vector<std::string> args, RedisWrapper &engine)
+{
+    if (args.size() < 3)
+    {
+        return "-EER wrong number of arguments for 'srem' command";
+    }
+    return engine.srem(args);
+}
+
+std::string sismember_handler(std::vector<std::string> args, RedisWrapper &engine)
+{
+    if (args.size() < 3)
+    {
+        return "-EER wrong number of arguments for 'sismember' command";
+    }
+    return engine.sismember(args);
 }

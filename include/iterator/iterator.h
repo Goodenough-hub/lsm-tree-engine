@@ -10,7 +10,6 @@ enum class IteratorType
     SkipListIterator,
     BlockIterator,
     SSTIterator,
-    BlockIterator,
     HeapIterator,
     TwoMergeIterator,
     ConcatIterator,

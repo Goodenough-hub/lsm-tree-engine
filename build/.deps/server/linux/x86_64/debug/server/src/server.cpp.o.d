@@ -1,6 +1,4 @@
 {
-    depfiles = "server.o: server/src/server.cpp  server/src/../../include/redis_wrapper/redis_wrapper.h  server/src/../../include/redis_wrapper/../engine/engine.h  server/src/../../include/redis_wrapper/../engine/../memtable/memtable.h  server/src/../../include/redis_wrapper/../engine/../memtable/../skiplist/skiplist.h  server/src/../../include/redis_wrapper/../engine/../memtable/../../include/iterator/iterator.h  server/src/../../include/redis_wrapper/../engine/../memtable/../sst/sst.h  server/src/../../include/redis_wrapper/../engine/../memtable/../sst/../block/block.h  server/src/../../include/redis_wrapper/../engine/../memtable/../sst/../block/block_iterator.h  server/src/../../include/redis_wrapper/../engine/../memtable/../sst/../block/blockmeta.h  server/src/../../include/redis_wrapper/../engine/../memtable/../sst/../block/block_cache.h  server/src/../../include/redis_wrapper/../engine/../memtable/../sst/../utils/file.h  server/src/../../include/redis_wrapper/../engine/../memtable/../sst/../utils/mmap_file.h  server/src/../../include/redis_wrapper/../engine/../memtable/../sst/../utils/bloom_filter.h  server/src/../../include/redis_wrapper/../engine/../memtable/../sst/sst_iterator.h  server/src/../include/handler.h\
-",
     values = {
         "/usr/bin/gcc",
         {
@@ -16,5 +14,7 @@
     files = {
         "server/src/server.cpp"
     },
+    depfiles = "server.o: server/src/server.cpp  server/src/../../include/redis_wrapper/redis_wrapper.h  server/src/../../include/redis_wrapper/../engine/engine.h  server/src/../../include/redis_wrapper/../engine/../memtable/memtable.h  server/src/../../include/redis_wrapper/../engine/../memtable/../skiplist/skiplist.h  server/src/../../include/redis_wrapper/../engine/../memtable/../../include/iterator/iterator.h  server/src/../../include/redis_wrapper/../engine/../memtable/../sst/sst.h  server/src/../../include/redis_wrapper/../engine/../memtable/../sst/../block/block.h  server/src/../../include/redis_wrapper/../engine/../memtable/../sst/../block/block_iterator.h  server/src/../../include/redis_wrapper/../engine/../memtable/../sst/../block/blockmeta.h  server/src/../../include/redis_wrapper/../engine/../memtable/../sst/../block/block_cache.h  server/src/../../include/redis_wrapper/../engine/../memtable/../sst/../utils/file.h  server/src/../../include/redis_wrapper/../engine/../memtable/../sst/../utils/mmap_file.h  server/src/../../include/redis_wrapper/../engine/../memtable/../sst/../utils/bloom_filter.h  server/src/../../include/redis_wrapper/../engine/../memtable/../sst/sst_iterator.h  server/src/../../include/redis_wrapper/../engine/two_merge_iterator.h  server/src/../include/handler.h\
+",
     depfiles_format = "gcc"
 }
