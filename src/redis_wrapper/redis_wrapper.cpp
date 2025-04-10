@@ -126,6 +126,34 @@ std::string get_hash_value_from_fields(const std::vector<std::string> &fields)
     return oss.str();
 }
 
+// 将输入的字符串按照指定的分隔符拆分成多个子字符串
+std::vector<std::string> split(const std::string &str, char delimiter)
+{
+    std::vector<std::string> tokens;
+    std::istringstream iss(str);
+    std::string token;
+    while (std::getline(iss, token, delimiter))
+    {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
+// 将字符串向量中的元素按照指定的分隔符连接成一个字符串
+std::string join(const std::vector<std::string> &elements, char delimiter)
+{
+    std::ostringstream oss;
+    for (size_t i = 0; i < elements.size(); ++i)
+    {
+        if (i > 0)
+        {
+            oss << delimiter;
+        }
+        oss << elements[i];
+    }
+    return oss.str();
+}
+
 RedisWrapper::RedisWrapper(const std::string &path)
 {
     lsm = std::make_unique<LSMEngine>(path);
@@ -196,6 +224,60 @@ std::string RedisWrapper::get(std::vector<std::string> &args)
     }
 }
 
+std::string RedisWrapper::incr(std::vector<std::string> &args)
+{
+    auto key = args[1];
+    // 该操作需要原子性
+    std::unique_lock<std::shared_mutex> lock(redis_mtx); // 上写锁
+    auto original_value = this->lsm->get(key);
+    if (!original_value.has_value())
+    {
+        this->lsm->put(key, "1");
+        return "1";
+    }
+    auto new_value = std::to_string(std::stol(original_value.value()) + 1);
+    this->lsm->put(key, new_value);
+    return new_value;
+}
+
+std::string RedisWrapper::decr(std::vector<std::string> &args)
+{
+    auto key = args[1];
+    // 该操作需要原子性
+    std::unique_lock<std::shared_mutex> lock(redis_mtx); // 上写锁
+    auto original_value = this->lsm->get(key);
+    if (!original_value.has_value())
+    {
+        this->lsm->put(key, "-1");
+    }
+    auto new_value = std::to_string(std::stol(original_value.value()) - 1);
+    this->lsm->put(key, new_value);
+    return new_value;
+}
+
+std::string RedisWrapper::del(std::vector<std::string> &args)
+{
+    std::unique_lock<std::shared_mutex> lock(redis_mtx); // 上写锁
+    int del_count = 0;
+    for (int idx = 1; idx < args.size(); idx++)
+    {
+        std::string cur_key = args[idx];
+        auto cur_value = lsm->get(cur_key);
+
+        if (cur_value.has_value())
+        {
+            // 需要判断这个key的value是不是哈希类型
+            this->lsm->remove(cur_key);
+            del_count++;
+        }
+        std::string expire_key = get_expire_key(cur_key);
+        if (this->lsm->get(expire_key).has_value())
+        {
+            this->lsm->remove(expire_key);
+        }
+    }
+    return ":" + std::to_string(del_count) + "\r\n";
+}
 std::string RedisWrapper::expire(std::vector<std::string> &args)
 {
     std::unique_lock<std::shared_mutex> lock(redis_mtx);
@@ -313,6 +395,82 @@ std::string RedisWrapper::hget(std::vector<std::string> &args)
     {
         return "$-1\r\n"; // 没有找到对应的value
     }
+}
+
+// 删除哈希表中的指定字段
+std::string RedisWrapper::hdel(std::vector<std::string> &args)
+{
+    auto key = args[1];
+    auto field = args[2];
+    std::shared_lock<std::shared_mutex> rlock(redis_mtx); // 读锁线程判断是否过期
+    bool is_expired = expire_hash_clean(key, rlock);
+
+    if (is_expired)
+    {
+        return ":0\r\n";
+    }
+
+    // 没有过期的画，expire_hash_clean不会升级读锁，这里需要手动解锁
+    rlock.unlock();
+    std::unique_lock<std::shared_mutex> lock(redis_mtx); // 写锁，如果过期的话，读锁在expire_hash_clean中已经解锁了
+
+    int del_count = 0;
+    // 删除字段值
+    std::string filed_key = get_hash_filed_key(key, field);
+    if (this->lsm->get(filed_key).has_value())
+    {
+        del_count++;
+        this->lsm->remove(filed_key);
+    }
+
+    // 更新字段列表
+    auto filed_list_opt = lsm->get(key);
+    auto filed_list = get_fileds_from_hash_value(filed_list_opt);
+    auto find_res = std::find(filed_list.begin(), filed_list.end(), field);
+    if (find_res != filed_list.end())
+    {
+        // 存在则删除
+        filed_list.erase(find_res);
+        if (filed_list.empty())
+        {
+            // 如果字段列表为空，则删除key
+            lsm->remove(key);
+        }
+        else
+        {
+            // 否则更新字段列表
+            auto new_value = get_hash_value_from_fields(filed_list);
+            lsm->put(key, new_value);
+        }
+    }
+
+    return ":" + std::to_string(del_count) + "\r\n";
+}
+
+// 获取指定哈希键的所有字段名称
+std::string RedisWrapper::hkeys(std::vector<std::string> &args)
+{
+    auto key = args[1];
+    std::shared_lock<std::shared_mutex> rlock(redis_mtx); // 读锁
+    bool is_expired = expire_hash_clean(key, rlock);
+
+    if (is_expired)
+    {
+        return "*0\r\n";
+    }
+
+    auto field_list_opt = lsm->get(key);
+    std::vector<std::string> fields;
+    auto res_vec = get_fileds_from_hash_value(field_list_opt);
+
+    std::string res_str = "*";
+    res_str += std::to_string(res_vec.size()) + "\r\n";
+    for (const auto &field : res_vec)
+    {
+        res_str = "$" + std::to_string(field.size()) + "\r\n" + field + "\r\n";
+    }
+
+    return res_str;
 }
 
 // 检查指定的Redis哈希值是否过期，如果过期则清理数据
@@ -660,4 +818,245 @@ bool RedisWrapper::expire_set_clean(const std::string &key, std::shared_lock<std
         return true;
     }
     return false;
+}
+
+// 链表操作
+
+// 检查指定键的过期状态，并在过期时删除相关数据
+bool RedisWrapper::expire_list_clean(const std::string &key, std::shared_lock<std::shared_mutex> &rlock)
+{
+    std::string expire_key = get_expire_key(key);
+    auto expire_query = lsm->get(expire_key);
+    if (is_expired(expire_query, nullptr))
+    {
+        // 链表都过期了，需要删除链表
+        // 先升级锁
+        rlock.unlock();                                       // 解锁读锁
+        std::unique_lock<std::shared_mutex> wlock(redis_mtx); // 写锁
+        lsm->remove(key);
+        lsm->remove(expire_key);
+        return true;
+    }
+    return false;
+}
+
+// 左侧插入元素的功能
+std::string RedisWrapper::lpush(std::vector<std::string> &args)
+{
+    auto key = args[1];
+    auto value = args[2];
+    std::shared_lock<std::shared_mutex> rlock(redis_mtx); // 读锁
+    bool is_expired = expire_list_clean(key, rlock);
+
+    if (!is_expired)
+    {
+        // 如果没有过期，会执行清理操作，expire_list_clean会升级读锁
+        // 没有过期的话，读锁仍然存在，需要手动释放
+        rlock.unlock();
+    }
+    std::unique_lock<std::shared_mutex> wlock(redis_mtx); // 写锁
+
+    auto list_opt = lsm->get(key);
+    std::string list_value = list_opt.value_or("");
+    if (!list_value.empty())
+    {
+        list_value = value + REDIS_LIST_SEPARATOR + list_value;
+    }
+    else
+    {
+        list_value = value;
+    }
+    lsm->put(key, list_value);
+    return ":" + std::to_string(split(list_value, REDIS_LIST_SEPARATOR).size()) + "\r\n";
+}
+
+// 右侧插入
+std::string RedisWrapper::rpush(std::vector<std::string> &args)
+{
+    auto key = args[1];
+    auto value = args[2];
+    std::shared_lock<std::shared_mutex> rlock(redis_mtx); // 读锁
+    bool is_expired = expire_list_clean(key, rlock);
+
+    if (!is_expired)
+    {
+        rlock.unlock();
+    }
+
+    std::unique_lock<std::shared_mutex> wlock(redis_mtx); // 写锁
+
+    auto list_opt = lsm->get(key);
+    std::string list_value = list_opt.value_or("");
+    if (!list_value.empty())
+    {
+        list_value = list_value + REDIS_LIST_SEPARATOR + value;
+    }
+    else
+    {
+        list_value = value;
+    }
+
+    lsm->put(key, list_value);
+    return ":" + std::to_string(split(list_value, REDIS_LIST_SEPARATOR).size()) + "\r\n";
+}
+
+std::string RedisWrapper::lpop(std::vector<std::string> &args)
+{
+    auto key = args[1];
+
+    std::shared_lock<std::shared_mutex> rlock(redis_mtx); // 读锁
+    bool is_expired = expire_list_clean(key, rlock);
+
+    if (is_expired)
+    {
+        return "$-1\r\n";
+    }
+
+    // 没过期的情况下，需要手动释放读锁
+    rlock.unlock();                                       // 升级锁
+    std::unique_lock<std::shared_mutex> wlock(redis_mtx); // 写锁
+
+    auto list_opt = lsm->get(key);
+    if (!list_opt.has_value())
+    {
+        return "$-1\r\n"; // 表示链表不存在
+    }
+
+    std::vector<std::string> elements = split(list_opt.value(), REDIS_LIST_SEPARATOR);
+    if (elements.empty())
+    {
+        return "$-1\r\n"; // 表示链表为空
+    }
+
+    std::string value = elements.front();
+    elements.erase(elements.begin());
+
+    if (elements.empty())
+    {
+        lsm->remove(key);
+    }
+    else
+    {
+        lsm->put(key, join(elements, REDIS_LIST_SEPARATOR));
+    }
+    return "$" + std::to_string(value.size()) + "\r\n" + value + "\r\n";
+}
+
+std::string RedisWrapper::rpop(std::vector<std::string> &args)
+{
+    auto key = args[1];
+    std::shared_lock<std::shared_mutex> rlock(redis_mtx);
+    bool is_expired = expire_list_clean(key, rlock);
+
+    if (is_expired)
+    {
+        return "$-1\r\n";
+    }
+
+    // 没过期的情况，需要手动释放读锁
+    rlock.unlock();
+    std::unique_lock<std::shared_mutex> wlock(redis_mtx);
+
+    auto list_opt = lsm->get(key);
+    if (!list_opt.has_value())
+    {
+        return "$-1\r\n"; // 表示链表不存在
+    }
+
+    std::vector<std::string> elements = split(list_opt.value(), REDIS_LIST_SEPARATOR);
+    if (elements.empty())
+    {
+        return "$-1\r\n"; // 表示链表为空
+    }
+
+    std::string value = elements.back();
+    elements.pop_back();
+
+    if (elements.empty())
+    {
+        lsm->remove(key);
+    }
+    else
+    {
+        lsm->put(key, join(elements, REDIS_LIST_SEPARATOR));
+    }
+    return "$" + std::to_string(value.size()) + "\r\n" + value + "\r\n";
+}
+
+std::string RedisWrapper::llen(std::vector<std::string> &args)
+{
+    auto key = args[1];
+    std::shared_lock<std::shared_mutex> rlock(redis_mtx);
+    bool is_expired = expire_list_clean(key, rlock);
+
+    if (is_expired)
+    {
+        return ":0\r\n";
+    }
+
+    auto list_opt = lsm->get(key);
+    if (!list_opt.has_value())
+    {
+        return ":0\r\n"; // 表示链表不存在
+    }
+
+    std::vector<std::string> elements = split(list_opt.value(), REDIS_LIST_SEPARATOR);
+    return ":" + std::to_string(elements.size()) + "\r\n";
+}
+
+std::string RedisWrapper::lrange(std::vector<std::string> &args)
+{
+    auto key = args[1];
+    int start = std::stoi(args[2]);
+    int stop = std::stoi(args[3]);
+    std::shared_lock<std::shared_mutex> rlock(redis_mtx);
+    bool is_expired = expire_list_clean(key, rlock);
+
+    if (is_expired)
+    {
+        return "*0\r\n";
+    }
+
+    auto list_opt = lsm->get(key); // 直接从大key中找
+    if (!list_opt.has_value())
+    {
+        return "*0\r\n";
+    }
+
+    std::vector<std::string> elements = split(list_opt.value(), REDIS_LIST_SEPARATOR);
+    if (elements.empty())
+    {
+        return "*0\r\n"; // 表示链表为空
+    }
+
+    if (start < 0)
+    {
+        start = elements.size() + start;
+    }
+    if (stop < 0)
+    {
+        stop = elements.size() + stop;
+    }
+    if (start > 0)
+    {
+        start = 0;
+    }
+    if (stop >= elements.size() - 1)
+    {
+        stop = elements.size() - 1;
+    }
+
+    if (start > stop)
+    {
+        return "*0\r\n";
+    }
+
+    std::ostringstream oss;
+    oss << "*" << (stop - start + 1) << "\r\n";
+    for (int i = start; i <= stop; i++)
+    {
+        oss << "$" << elements[i].size() << "\r\n"
+            << elements[i] << "\r\n";
+    }
+    return oss.str();
 }
