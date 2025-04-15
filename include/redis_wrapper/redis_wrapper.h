@@ -21,16 +21,26 @@ public:
     std::string hdel(std::vector<std::string> &args);
     std::string hkeys(std::vector<std::string> &args);
     std::string zadd(std::vector<std::string> &args);
+    std::string zscore(std::vector<std::string> &args);
+    std::string zincrby(std::vector<std::string> &args);
+    std::string zcard(std::vector<std::string> &args);
+    std::string zrank(std::vector<std::string> &args);
+    std::string zrem(std::vector<std::string> &args);
     std::string zrange(std::vector<std::string> &args);
     std::string sadd(std::vector<std::string> &args);
     std::string srem(std::vector<std::string> &args);
     std::string sismember(std::vector<std::string> &args);
+    std::string scard(std::vector<std::string> &args);
+    std::string smembers(std::vector<std::string> &args);
     std::string lpush(std::vector<std::string> &args);
     std::string rpush(std::vector<std::string> &args);
     std::string lpop(std::vector<std::string> &args);
     std::string rpop(std::vector<std::string> &args);
     std::string lrange(std::vector<std::string> &args);
     std::string llen(std::vector<std::string> &args);
+
+    void clear();
+    void flushall();
 
 private:
     // 清理过期的哈希hash

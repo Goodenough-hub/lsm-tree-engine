@@ -24,6 +24,7 @@ private:
     std::shared_mutex ssts_mtx;
 
     void flush();
+    void flush_all();
     std::string get_sst_path(size_t sst_id);
 
 public:
@@ -34,6 +35,8 @@ public:
     std::optional<std::string> get(const std::string &key);
     void remove(const std::string &key);
     void remove_batch(const std::vector<std::string> &keys);
+
+    void clear();
 
     std::optional<std::pair<TwoMergeIterator, TwoMergeIterator>> iter_monotony_predicate(std::function<int(const std::string &)> predicate);
 };
