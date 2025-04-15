@@ -4,6 +4,24 @@
 #include <vector>
 #include <optional>
 
+// 从Block的数据中提取指定偏移量位置的事务ID
+uint64_t Block::get_tranc_id_at(size_t offset) const
+{
+    uint64_t key_len; // 存储key长度
+    memcpy(&key_len, data.data() + offset, sizeof(uint16_t));
+
+    // 计算value长度的位置
+    size_t value_len_ops = offset + sizeof(uint16_t) + key_len;
+    uint16_t value_len;
+    memcpy(&value_len, data.data() + value_len_ops, sizeof(uint16_t));
+
+    // 计算事务id的位置
+    size_t tranc_id_ops = value_len_ops + sizeof(uint16_t) + value_len;
+    uint64_t tranc_id;
+    memcpy(&tranc_id, data.data() + tranc_id_ops, sizeof(uint64_t));
+    return tranc_id;
+}
+
 Block::Block(size_t capacity) : capacity(capacity) {}
 
 std::vector<uint8_t> Block::encode()
@@ -100,15 +118,19 @@ bool Block::is_empty() const
     return offsets.empty();
 }
 
-bool Block::add_entry(const std::string key, const std::string &value)
+// tranc_id：事务ID，需要同步持久化
+// 事务id持久化时必然时正整数
+// 事务id为0时，表示不开启事务功能，但不可能出现在实际的文件持久化内容中
+bool Block::add_entry(const std::string key, const std::string &value, uint64_t tranc_id, bool force_write)
 {
-    if (cur_size() + key.size() + value.size() + 3 * sizeof(uint16_t) > capacity)
+    if (!force_write && cur_size() + key.size() + value.size() + 3 * sizeof(uint16_t) > capacity)
     {
         return false;
     }
 
-    // 计算entries的大小 key_len + key + value_len + value
-    size_t entry_size = key.size() + value.size() + 2 * sizeof(uint16_t);
+    // 计算entries的大小 key_len + key + value_len + value + uint64_t
+    // (事务ID的内容)
+    size_t entry_size = key.size() + value.size() + 2 * sizeof(uint16_t) + sizeof(uint64_t);
     size_t old_size = data.size();
     data.resize(old_size + entry_size);
 
@@ -121,6 +143,9 @@ bool Block::add_entry(const std::string key, const std::string &value)
     uint16_t value_len = value.size();
     memcpy(data.data() + old_size + sizeof(uint16_t) + key_len, &value_len, sizeof(uint16_t));
     memcpy(data.data() + old_size + sizeof(uint16_t) + key_len + sizeof(uint16_t), value.data(), value_len);
+
+    // 写入事务id
+    memcpy(data.data() + old_size + sizeof(uint16_t) + key_len + sizeof(uint16_t) + value_len, &tranc_id, sizeof(uint64_t));
 
     // 记录偏移量
     offsets.push_back(old_size);
@@ -160,7 +185,84 @@ std::string Block::get_value_at(size_t offset) const
     return std::string(reinterpret_cast<const char *>(data.data() + offset + sizeof(uint16_t) + key_len + sizeof(uint16_t)), value_len);
 }
 
-std::optional<size_t> Block::get_idx_binary(const std::string &key)
+bool Block::is_same_key(size_t idx, const std::string &target_key) const
+{
+    if (idx >= offsets.size())
+    {
+        return false;
+    }
+
+    return get_key_at(offsets[idx]) == target_key;
+}
+
+// 相同的key是连续分布的, 且相同key按照事务id由大到小排布
+// 这里的逻辑是找到最接近 tranc_id 的键值对的索引位置
+// example:
+// tranc: 100
+// get (key1, 100)
+// key1: value1 97
+// key1: value2 98
+// key1: value3 101
+//
+// tranc_id = 0表示不开启事务可见性的限制
+int Block::adjust_idx_by_tranc_id(size_t idx, uint64_t tranc_id)
+{
+    if (idx >= offsets.size())
+    {
+        return -1; // 索引越界
+    }
+
+    auto target_key = get_key_at(offsets[idx]);
+
+    if (tranc_id != 0)
+    {
+        auto cur_tranc_id = get_tranc_id_at(offsets[idx]);
+        if (cur_tranc_id <= tranc_id)
+        {
+            // 当前事务可见的，需要向前继续判断
+            // 向前判断的前提是key相同
+            size_t pre_idx = idx;
+            while (pre_idx > 0 && is_same_key(pre_idx - 1, target_key))
+            {
+                pre_idx--;
+                auto new_tranc_id = get_tranc_id_at(offsets[pre_idx]);
+                if (new_tranc_id > tranc_id)
+                {
+                    // 不可见，返回之前位置的索引
+                    return pre_idx + 1;
+                }
+            }
+            return pre_idx;
+        }
+        else
+        {
+            // 当前记录不可见，向后查找
+            size_t next_idx = idx + 1;
+            while (next_idx < offsets.size() && is_same_key(next_idx, target_key))
+            {
+                auto new_tranc_id = get_tranc_id_at(offsets[next_idx]);
+                if (new_tranc_id <= tranc_id)
+                {
+                    return next_idx; // 找到可见记录
+                }
+                next_idx++;
+            }
+            return -1;
+        }
+    }
+    else
+    {
+        // 没有开启事务的情况
+        size_t pre_idx = idx;
+        while (pre_idx > 0 && is_same_key(pre_idx - 1, target_key))
+        {
+            pre_idx--;
+        }
+        return pre_idx;
+    }
+}
+
+std::optional<size_t> Block::get_idx_binary(const std::string &key, uint64_t tranc_id)
 {
     if (offsets.empty())
     {
@@ -180,6 +282,12 @@ std::optional<size_t> Block::get_idx_binary(const std::string &key)
 
         if (cmp == 0)
         {
+            // 找到了key，但还需要判断事务id的可见性
+            auto new_mid = adjust_idx_by_tranc_id(mid, tranc_id);
+            if (new_mid != -1)
+            {
+                return std::nullopt; // 没有找到可见的记录
+            }
             return mid;
         }
         else if (cmp < 0)
@@ -216,9 +324,9 @@ std::string Block::get_first_key()
     return std::string(reinterpret_cast<const char *>(data.data() + sizeof(uint16_t)), key_len); // 根据读取的长度，从data中提取对应的字节序列并转换为字符串返回。
 }
 
-std::optional<std::string> Block::get_value_binary(const std::string &key)
+std::optional<std::string> Block::get_value_binary(const std::string &key, uint64_t tranc_id)
 {
-    auto idx = get_idx_binary(key);
+    auto idx = get_idx_binary(key, tranc_id);
     if (idx.has_value())
     {
         return get_value_at(offsets[idx.value()]);
@@ -232,7 +340,7 @@ std::optional<std::string> Block::get_value_binary(const std::string &key)
 // 0：满足条件
 // >0：不满足谓词，需要向右移动
 // <0：不满足谓词，需要向左移动
-std::optional<std::pair<std::shared_ptr<BlockIterator>, std::shared_ptr<BlockIterator>>> Block::get_monotony_predicate(std::function<int(const std::string &)> predicate)
+std::optional<std::pair<std::shared_ptr<BlockIterator>, std::shared_ptr<BlockIterator>>> Block::get_monotony_predicate(uint64_t tranc_id, std::function<int(const std::string &)> predicate)
 {
     // 如果offsets为空，则表示当前块中没有数据，直接返回
     if (offsets.empty())
