@@ -13,7 +13,7 @@ SSTBuilder::SSTBuilder(size_t block_size, bool with_bloom) : block_size(block_si
     last_key.clear();
 }
 
-void SSTBuilder::add(const std::string &key, const std::string &value)
+void SSTBuilder::add(const std::string &key, const std::string &value, uint64_t tranc_id)
 {
     if (first_key.empty())
     {
@@ -26,7 +26,13 @@ void SSTBuilder::add(const std::string &key, const std::string &value)
         bloom_filter->add(key);
     }
 
-    if (block.add_entry(key, value))
+    max_tranc_id_ = std::max(max_tranc_id_, tranc_id);
+    min_tranc_id_ = std::min(min_tranc_id_, tranc_id);
+
+    bool force_write = last_key == key;
+    // 连续出现的相同的key必须位于同一个block
+
+    if (block.add_entry(key, value, tranc_id, force_write))
     {
         last_key = key;
         return;
@@ -34,7 +40,7 @@ void SSTBuilder::add(const std::string &key, const std::string &value)
 
     finish_block();
 
-    block.add_entry(key, value);
+    block.add_entry(key, value, tranc_id, force_write);
     first_key = key;
     last_key = key;
 }
@@ -100,15 +106,21 @@ SSTBuilder::build(size_t sst_id, const std::string &path,
         file_content.insert(file_content.end(), bf_data.begin(), bf_data.end());
     }
 
-    file_content.resize(file_content.size() + sizeof(uint32_t) * 2);
+    file_content.resize(file_content.size() + sizeof(uint32_t) * 2 + sizeof(uint64_t) * 2);
 
     // 4. 编码meta section的offset
-    memcpy(file_content.data() + file_content.size() - sizeof(uint32_t) * 2,
+    memcpy(file_content.data() + file_content.size() - sizeof(uint32_t) * 2 - sizeof(uint64_t) * 2,
            &meta_offset, sizeof(uint32_t));
 
     // 5. 编码bloom section的offset
-    memcpy(file_content.data() + file_content.size() - sizeof(uint32_t),
+    memcpy(file_content.data() + file_content.size() - sizeof(uint32_t) * 2,
            &bloom_offset, sizeof(uint32_t));
+
+    // 6. 记录最大最小事务id信息
+    memcpy(file_content.data() + file_content.size() - sizeof(uint64_t) * 2,
+           &min_tranc_id_, sizeof(uint64_t));
+    memcpy(file_content.data() + file_content.size() - sizeof(uint64_t),
+           &max_tranc_id_, sizeof(uint64_t));
 
     FileObj file = FileObj::create_and_write(path, file_content);
 
@@ -124,17 +136,20 @@ SSTBuilder::build(size_t sst_id, const std::string &path,
     res->meta_block_offset = meta_offset;
     res->cache = block_cache;
 
+    res->min_tranc_id_ = min_tranc_id_;
+    res->max_tranc_id_ = max_tranc_id_;
+
     return res;
 }
 
-SstIterator SST::get(const std::string &key)
+SstIterator SST::get(const std::string &key, uint64_t tranc_id)
 {
     // 在布隆过滤器判断key是否存在
     if (bloom_filter != nullptr && !bloom_filter->possibly_contains(key))
     {
-        return this->end();
+        return this->end(tranc_id);
     }
-    return SstIterator(shared_from_this(), key);
+    return SstIterator(shared_from_this(), key, tranc_id);
 }
 
 size_t SST::num_blocks()
@@ -142,14 +157,14 @@ size_t SST::num_blocks()
     return meta_entries.size();
 }
 
-SstIterator SST::begin()
+SstIterator SST::begin(uint64_t tranc_id)
 {
-    return SstIterator(shared_from_this());
+    return SstIterator(shared_from_this(), tranc_id);
 }
 
-SstIterator SST::end()
+SstIterator SST::end(uint64_t tranc_id)
 {
-    auto res = SstIterator(shared_from_this());
+    auto res = SstIterator(shared_from_this(), tranc_id);
     res.m_sst = nullptr;
     res.m_block_idx = -1;
     res.cached_value = std::nullopt;
@@ -312,4 +327,9 @@ size_t SST::sst_size() const
 size_t SST::get_sst_id() const
 {
     return sst_id;
+}
+
+std::pair<uint64_t, uint64_t> SST::get_tranc_id_range() const
+{
+    return std::make_pair(min_tranc_id_, max_tranc_id_);
 }

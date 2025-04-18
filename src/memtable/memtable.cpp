@@ -6,45 +6,45 @@
 
 Memtable::Memtable() : current_table(std::make_shared<SkipList>()), frozen_bytes(0) {}
 
-void Memtable::put(const std::string &key, const std::string &value)
+void Memtable::put(const std::string &key, const std::string &value, uint64_t tranc_id)
 {
     std::unique_lock<std::shared_mutex> lock(cur_mtx);
     // current_table->put(key, value);
-    put_(key, value);
+    put_(key, value, tranc_id);
 }
 
-void Memtable::put_(const std::string &key, const std::string &value)
+void Memtable::put_(const std::string &key, const std::string &value, uint64_t tranc_id)
 {
-    current_table->put(key, value);
+    current_table->put(key, value, tranc_id);
 }
 
-void Memtable::put_batch(const std::vector<std::pair<std::string, std::string>> &kvs)
+void Memtable::put_batch(const std::vector<std::pair<std::string, std::string>> &kvs, uint64_t tranc_id)
 {
     std::unique_lock<std::shared_mutex> lock(cur_mtx);
     for (size_t i = 0; i < kvs.size(); i++)
     {
-        put_(kvs[i].first, kvs[i].second);
+        put_(kvs[i].first, kvs[i].second, tranc_id);
     }
 }
 
-void Memtable::remove(const std::string &key)
+void Memtable::remove(const std::string &key, uint64_t tranc_id)
 {
     std::unique_lock<std::shared_mutex> lock(cur_mtx);
     // current_table->put(key, "");
-    remove_(key);
+    remove_(key, tranc_id);
 }
 
-void Memtable::remove_(const std::string &key)
+void Memtable::remove_(const std::string &key, uint64_t tranc_id)
 {
-    current_table->put(key, "");
+    current_table->put(key, "", tranc_id);
 }
 
-void Memtable::remove_batch(const std::vector<std::string> &keys)
+void Memtable::remove_batch(const std::vector<std::string> &keys, uint64_t tranc_id)
 {
     std::unique_lock<std::shared_mutex> lock(cur_mtx);
     for (const auto &key : keys)
     {
-        remove_(key);
+        remove_(key, tranc_id);
     }
 }
 
@@ -58,7 +58,7 @@ void Memtable::clear()
 }
 
 // 谓词查询
-std::optional<std::pair<HeapIterator, HeapIterator>> Memtable::iter_monotony_predicate(std::function<int(const std::string &)> predicate)
+std::optional<std::pair<HeapIterator, HeapIterator>> Memtable::iter_monotony_predicate(uint64_t tranc_id, std::function<int(const std::string &)> predicate)
 {
     // 汇总每个skiplist谓词查询的结果
 
@@ -73,9 +73,13 @@ std::optional<std::pair<HeapIterator, HeapIterator>> Memtable::iter_monotony_pre
     if (cur_result.has_value())
     {
         auto [cur_begin, cur_end] = cur_result.value();
-        for (auto iter = cur_begin; iter != cur_end; iter++) // 遍历迭代器范围
+        for (auto iter = cur_begin; iter != cur_end; ++iter) // 遍历迭代器范围
         {
-            item_vec.emplace_back(SearchItem(iter.get_key(), iter.get_value(), 0));
+            if (tranc_id != 0 && iter.get_tranc_id() == tranc_id > tranc_id)
+            {
+                continue;
+            }
+            item_vec.emplace_back(iter.get_key(), iter.get_value(), 0, 0, iter.get_tranc_id());
         }
     }
 
@@ -87,24 +91,28 @@ std::optional<std::pair<HeapIterator, HeapIterator>> Memtable::iter_monotony_pre
         if (result.has_value())
         {
             auto [begin, end] = result.value();
-            for (auto iter = begin; iter != end; iter++)
+            for (auto iter = begin; iter != end; ++iter)
             {
-                item_vec.emplace_back(iter.get_key(), iter.get_value(), table_idx);
+                if (tranc_id != 0 && iter.get_tranc_id() == tranc_id > tranc_id)
+                {
+                    continue;
+                }
+                item_vec.emplace_back(iter.get_key(), iter.get_value(), table_idx, 0, iter.get_tranc_id());
             }
         }
         table_idx++;
     }
 
-    return std::make_pair(HeapIterator(item_vec), HeapIterator());
+    return std::make_pair(HeapIterator(item_vec, tranc_id), HeapIterator());
 }
 
-std::optional<std::string> Memtable::get(const std::string &key)
+SkipListIterator Memtable::get(const std::string &key, uint64_t tranc_id)
 {
     // current table中找
     std::shared_lock<std::shared_mutex> lock1(cur_mtx);
 
-    auto result1 = cur_get_(key);
-    if (result1.has_value())
+    auto result1 = cur_get_(key, tranc_id);
+    if (result1.is_valid())
     {
         return result1;
     }
@@ -114,56 +122,55 @@ std::optional<std::string> Memtable::get(const std::string &key)
     // frozen table中找
     std::shared_lock<std::shared_mutex> lock2(frozen_mtx);
 
-    return frozen_get_(key);
+    return frozen_get_(key, tranc_id);
 }
 
-std::vector<std::optional<std::string>> Memtable::get_batch(const std::vector<std::string> &keys)
+std::vector<SkipListIterator> Memtable::get_batch(const std::vector<std::string> &keys, uint64_t tranc_id)
 {
     // 优先级较高，持有两把锁
     // 先上frozen_mtx锁，再上cur_mtx锁。是为了避免死锁
     std::shared_lock<std::shared_mutex> lock1(frozen_mtx);
     std::shared_lock<std::shared_mutex> lock2(cur_mtx);
 
-    std::vector<std::optional<std::string>> results;
+    std::vector<SkipListIterator> results;
 
     for (const auto &key : keys)
     {
 
-        auto result1 = cur_get_(key);
-        if (result1.has_value())
+        auto result1 = cur_get_(key, tranc_id);
+        if (result1.is_valid())
         {
             results.push_back(result1);
             continue;
         }
 
-        auto result2 = frozen_get_(key);
+        auto result2 = frozen_get_(key, tranc_id);
         results.push_back(result2);
     }
 
     return results;
 }
 
-std::optional<std::string> Memtable::cur_get_(const std::string &key)
+SkipListIterator Memtable::cur_get_(const std::string &key, uint64_t tranc_id)
 {
-    auto res = current_table->get(key);
-    if (res.has_value())
+    auto res = current_table->get(key, tranc_id);
+    if (res.is_valid())
     {
-        auto data = res.value();
-        return data;
+        return res;
     }
-    return std::nullopt;
+    return SkipListIterator{nullptr};
 }
 
-std::optional<std::string> Memtable::frozen_get_(const std::string &key)
+SkipListIterator Memtable::frozen_get_(const std::string &key, uint64_t tranc_id)
 {
     // 查冻结的表
     for (auto &table : frozen_tables)
     {
-        auto res = table->get(key);
-        if (res.has_value())
-            return res.value();
+        auto res = table->get(key, tranc_id);
+        if (res.is_valid())
+            return res;
     }
-    return std::nullopt;
+    return SkipListIterator{nullptr};
 }
 
 size_t Memtable::get_cur_size()
@@ -218,40 +225,48 @@ std::shared_ptr<SST> Memtable::flush_last(SSTBuilder &builder, std::string &sst_
     frozen_bytes -= table->get_size();
 
     auto flush_data = table->flush(); // 获取所有键值对
-    for (auto &[k, v] : flush_data)
+    for (auto &[k, v, t] : flush_data)
     {
-        builder.add(k, v);
+        builder.add(k, v, t);
     }
 
     auto sst = builder.build(sst_id, sst_path, block_cache);
     return sst;
 }
 
-HeapIterator Memtable::begin()
+HeapIterator Memtable::begin(uint64_t tranc_id)
 {
     std::shared_lock<std::shared_mutex> lock1(frozen_mtx);
     std::shared_lock<std::shared_mutex> lock2(cur_mtx);
 
     std::vector<SearchItem> item_vec;
-    for (auto iter = current_table->begin(); iter != current_table->end(); iter++)
+    for (auto iter = current_table->begin(); iter != current_table->end(); ++iter)
     {
-        item_vec.emplace_back(iter.get_key(), iter.get_value(), 0);
+        if (tranc_id != 0 && iter.get_tranc_id() != tranc_id)
+        {
+            continue;
+        }
+        item_vec.emplace_back(iter.get_key(), iter.get_value(), 0, iter.get_tranc_id());
     }
 
     int table_idx = 1;
     for (auto ft = frozen_tables.begin(); ft != frozen_tables.end(); ft++)
     {
         auto table = *ft;
-        for (auto iter = table->begin(); iter != table->end(); iter++)
+        for (auto iter = table->begin(); iter != table->end(); ++iter)
         {
-            item_vec.emplace_back(iter.get_key(), iter.get_value(), table_idx);
+            if (tranc_id != 0 && iter.get_tranc_id() != tranc_id)
+            {
+                continue;
+            }
+            item_vec.emplace_back(iter.get_key(), iter.get_value(), table_idx, 0, iter.get_tranc_id());
         }
         table_idx++;
     }
-    return HeapIterator(item_vec);
+    return HeapIterator(item_vec, tranc_id);
 }
 
-HeapIterator Memtable::end()
+HeapIterator Memtable::end(uint64_t tranc_id)
 {
     return HeapIterator();
 }

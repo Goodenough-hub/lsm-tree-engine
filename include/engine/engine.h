@@ -30,13 +30,13 @@ private:
 public:
     LSMEngine(std::string path);
     ~LSMEngine();
-    void put(const std::string &key, const std::string &value);
-    void put_batch(const std::vector<std::pair<std::string, std::string>> &kvs);
-    std::optional<std::string> get(const std::string &key);
-    void remove(const std::string &key);
-    void remove_batch(const std::vector<std::string> &keys);
+    void put(const std::string &key, const std::string &value, uint64_t tranc_id);
+    void put_batch(const std::vector<std::pair<std::string, std::string>> &kvs, uint64_t tranc_id);
+    std::optional<std::string> get(const std::string &key, uint64_t tranc_id);
+    void remove(const std::string &key, uint64_t tranc_id);
+    void remove_batch(const std::vector<std::string> &keys, uint64_t tranc_id);
 
     void clear();
 
-    std::optional<std::pair<TwoMergeIterator, TwoMergeIterator>> iter_monotony_predicate(std::function<int(const std::string &)> predicate);
+    std::optional<std::pair<TwoMergeIterator, TwoMergeIterator>> iter_monotony_predicate(uint64_t tranc_id, std::function<int(const std::string &)> predicate);
 };

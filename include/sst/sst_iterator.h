@@ -15,11 +15,11 @@ class SstIterator;
 // 0: 满足条件
 // >0: 不满足谓词, 需要往右移动
 // <0: 不满足谓词, 需要往左移动
-std::optional<std::pair<SstIterator, SstIterator>> sst_iters_monotony_predicate(std::shared_ptr<SST> sst, std::function<int(const std::string &)> predicate);
+std::optional<std::pair<SstIterator, SstIterator>> sst_iters_monotony_predicate(std::shared_ptr<SST> sst, uint64_t max_tranc_id, std::function<int(const std::string &)> predicate);
 
 class SstIterator : public BaseIterator
 {
-    friend std::optional<std::pair<SstIterator, SstIterator>> sst_iters_monotony_predicate(std::shared_ptr<SST> sst, std::function<int(const std::string &)> predicate);
+    friend std::optional<std::pair<SstIterator, SstIterator>> sst_iters_monotony_predicate(std::shared_ptr<SST> sst, uint64_t max_tranc_id, std::function<int(const std::string &)> predicate);
     friend class SST;
     using value_type = std::pair<std::string, std::string>;
     using pointer = value_type *;
@@ -29,16 +29,16 @@ private:
     size_t m_block_idx;
     std::shared_ptr<BlockIterator> m_block_iter;
     mutable std::optional<value_type> cached_value;
+    uint64_t max_tranc_id_;
 
     void update_current() const;
     void seek(const std::string &key);
 
+public:
     void set_block_idx(size_t idx);
     void set_block_it(std::shared_ptr<BlockIterator> it);
-
-public:
-    SstIterator(std::shared_ptr<SST> sst) : m_sst(std::move(sst)), m_block_idx(0), cached_value(std::nullopt) {}
-    SstIterator(std::shared_ptr<SST> sst, const std::string &key);
+    SstIterator(std::shared_ptr<SST> sst, uint64_t max_tranc_id) : m_sst(std::move(sst)), m_block_idx(0), cached_value(std::nullopt) {}
+    SstIterator(std::shared_ptr<SST> sst, const std::string &key, uint64_t max_tranc_id);
 
     virtual BaseIterator &operator++() override;
     SstIterator operator++(int) = delete; // 方便后续虚函数的实现
@@ -49,6 +49,7 @@ public:
     virtual IteratorType get_type() const override;
     virtual bool is_end() const override;
     virtual bool is_valid() const override;
+    virtual uint64_t get_tranc_id() const override;
 
     pointer operator->() const;
 };

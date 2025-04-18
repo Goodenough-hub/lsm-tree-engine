@@ -49,6 +49,6 @@ public:
 
     std::optional<std::pair<std::shared_ptr<BlockIterator>, std::shared_ptr<BlockIterator>>> get_monotony_predicate(uint64_t tranc_id, std::function<int(const std::string &)> predicate);
 
-    BlockIterator begin();
-    BlockIterator end();
+    BlockIterator begin(uint64_t tranc_id);
+    BlockIterator end(uint64_t tranc_id);
 };

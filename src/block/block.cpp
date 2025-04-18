@@ -426,12 +426,12 @@ std::optional<std::pair<std::shared_ptr<BlockIterator>, std::shared_ptr<BlockIte
     return std::make_pair(it_begin, it_end);
 }
 
-BlockIterator Block::begin()
+BlockIterator Block::begin(uint64_t tranc_id)
 {
-    return BlockIterator(shared_from_this(), 0);
+    return BlockIterator(shared_from_this(), 0, tranc_id);
 }
 
-BlockIterator Block::end()
+BlockIterator Block::end(uint64_t tranc_id)
 {
-    return BlockIterator(shared_from_this(), offsets.size());
+    return BlockIterator(shared_from_this(), offsets.size(), tranc_id);
 }

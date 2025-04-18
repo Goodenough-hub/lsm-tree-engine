@@ -5,10 +5,10 @@
 #include <filesystem>
 #include <vector>
 
-std::optional<std::pair<TwoMergeIterator, TwoMergeIterator>> LSMEngine::iter_monotony_predicate(std::function<int(const std::string &)> predicate)
+std::optional<std::pair<TwoMergeIterator, TwoMergeIterator>> LSMEngine::iter_monotony_predicate(uint64_t tranc_id, std::function<int(const std::string &)> predicate)
 {
     // 1.先从内存部分查询
-    auto mem_result = memtable.iter_monotony_predicate(predicate); // 从内存表查询符合单调行的结果
+    auto mem_result = memtable.iter_monotony_predicate(tranc_id, predicate); // 从内存表查询符合单调行的结果
 
     // 2.再从SST中查询
     std::vector<SearchItem> item_vec; // 存储从SST收集的查询结果
@@ -18,18 +18,22 @@ std::optional<std::pair<TwoMergeIterator, TwoMergeIterator>> LSMEngine::iter_mon
     // 遍历所有的SST文件，sst_id越小表示文件越旧
     for (auto &[sst_idx, sst] : ssts) // 结构化绑定分解SST索引和对象
     {
-        auto result = sst_iters_monotony_predicate(sst, predicate); // 在单个SST中查询
-        if (!result.has_value())                                    // 没有符合条件的结果则跳过
+        auto result = sst_iters_monotony_predicate(sst, tranc_id, predicate); // 在单个SST中查询
+        if (!result.has_value())                                              // 没有符合条件的结果则跳过
         {
             continue;
         }
         auto [it_begin, it_end] = result.value(); // 解包迭代器范围
         for (; it_begin != it_end && it_begin.is_valid(); ++it_begin)
         {
+            if (tranc_id != 0 && it_begin.get_tranc_id() > tranc_id)
+            {
+                continue;
+            }
             // 将键值对存入向量，sst_idx取负保证新文件优先级更高
             // 越古老的sst的idx越小，我们需要让新的SST优先放在堆顶
             // 反转符号
-            item_vec.emplace_back(it_begin->first, it_begin->second, -sst_idx);
+            item_vec.emplace_back(it_begin->first, it_begin->second, -sst_idx, 0, tranc_id);
         }
     }
 
@@ -42,14 +46,14 @@ std::optional<std::pair<TwoMergeIterator, TwoMergeIterator>> LSMEngine::iter_mon
         auto [mem_start, mem_end] = mem_result.value();                                 // 解包内存表迭代器
         std::shared_ptr<HeapIterator> mem_start_ptr = std::make_shared<HeapIterator>(); // 创建智能指针
         *mem_start_ptr = mem_start;                                                     // 复制迭代器状态 ==> 解引用
-        auto start = TwoMergeIterator(mem_start_ptr, l0_iter_ptr);                      // 合并内存和SST的迭代器
-        auto end = TwoMergeIterator();                                                  // 结束标记迭代器
+        auto start = TwoMergeIterator(mem_start_ptr, l0_iter_ptr, tranc_id);            // 合并内存和SST的迭代器
+        auto end = TwoMergeIterator(tranc_id);                                          // 结束标记迭代器
         return std::make_optional(std::make_pair(start, end));                          // 返回迭代器对
     }
     else // 内存表无结果时的处理
     {
-        auto start = TwoMergeIterator(std::make_shared<HeapIterator>(), l0_iter_ptr); // 空内存迭代器
-        auto end = TwoMergeIterator();
+        auto start = TwoMergeIterator(std::make_shared<HeapIterator>(), l0_iter_ptr, tranc_id); // 空内存迭代器
+        auto end = TwoMergeIterator(tranc_id);
         return std::make_optional(std::make_pair(start, end));
     }
 }
@@ -106,9 +110,9 @@ LSMEngine::~LSMEngine()
         flush();
     }
 }
-void LSMEngine::put(const std::string &key, const std::string &value)
+void LSMEngine::put(const std::string &key, const std::string &value, uint64_t tranc_id)
 {
-    memtable.put(key, value);
+    memtable.put(key, value, tranc_id);
 
     if (memtable.get_cur_size() >= LSM_TOTAL_MEM_SIZE_LIMIT)
     {
@@ -117,9 +121,9 @@ void LSMEngine::put(const std::string &key, const std::string &value)
     }
 }
 
-void LSMEngine::put_batch(const std::vector<std::pair<std::string, std::string>> &kvs)
+void LSMEngine::put_batch(const std::vector<std::pair<std::string, std::string>> &kvs, uint64_t tranc_id)
 {
-    memtable.put_batch(kvs);
+    memtable.put_batch(kvs, tranc_id);
 
     if (memtable.get_total_size() >= LSM_TOTAL_MEM_SIZE_LIMIT)
     {
@@ -128,15 +132,15 @@ void LSMEngine::put_batch(const std::vector<std::pair<std::string, std::string>>
     }
 }
 
-std::optional<std::string> LSMEngine::get(const std::string &key)
+std::optional<std::string> LSMEngine::get(const std::string &key, uint64_t tranc_id)
 {
     // 1.先从memtable中查找
-    auto value = memtable.get(key);
-    if (value.has_value())
+    SkipListIterator value = memtable.get(key, tranc_id);
+    if (value.is_valid())
     {
-        if (value->size() > 0)
+        if (value.get_value().size() > 0)
         {
-            return value;
+            return value.get_value();
         }
         else
         {
@@ -150,8 +154,8 @@ std::optional<std::string> LSMEngine::get(const std::string &key)
     for (auto &sst_id : l0_sst_ids)
     {
         std::shared_ptr<SST> sst = ssts[sst_id];
-        auto res = sst->get(key);
-        if (res != sst->end())
+        auto res = sst->get(key, tranc_id);
+        if (res != sst->end(tranc_id))
         {
             if ((res->second.size() > 0))
             {
@@ -166,9 +170,9 @@ std::optional<std::string> LSMEngine::get(const std::string &key)
     return std::nullopt;
 }
 
-void LSMEngine::remove(const std::string &key)
+void LSMEngine::remove(const std::string &key, uint64_t tranc_id)
 {
-    memtable.remove(key);
+    memtable.remove(key, tranc_id);
     if (memtable.get_cur_size() >= LSM_TOTAL_MEM_SIZE_LIMIT)
     {
         // 如果memtable太大就需要刷盘
@@ -176,9 +180,9 @@ void LSMEngine::remove(const std::string &key)
     }
 }
 
-void LSMEngine::remove_batch(const std::vector<std::string> &keys)
+void LSMEngine::remove_batch(const std::vector<std::string> &keys, uint64_t tranc_id)
 {
-    memtable.remove_batch(keys);
+    memtable.remove_batch(keys, tranc_id);
     if (memtable.get_cur_size() >= LSM_TOTAL_MEM_SIZE_LIMIT)
     {
         // 如果memtable太大就需要刷盘

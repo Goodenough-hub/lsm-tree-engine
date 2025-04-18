@@ -12,12 +12,13 @@ private:
 
     bool choose_a = false;
     mutable std::shared_ptr<value_type> current;
+    uint64_t max_tranc_id_;
 
     void update_current() const;
 
 public:
-    TwoMergeIterator();
-    TwoMergeIterator(std::shared_ptr<BaseIterator> a, std::shared_ptr<BaseIterator> b);
+    TwoMergeIterator(uint64_t tranc_id);
+    TwoMergeIterator(std::shared_ptr<BaseIterator> a, std::shared_ptr<BaseIterator> b, uint64_t max_tranc_id);
 
     bool choose_it_a(); // 是否选择迭代器it_a
     void skip_it_b();
@@ -31,4 +32,5 @@ public:
     virtual IteratorType get_type() const override;
     virtual bool is_end() const override;
     virtual bool is_valid() const override;
+    virtual uint64_t get_tranc_id() const override;
 };

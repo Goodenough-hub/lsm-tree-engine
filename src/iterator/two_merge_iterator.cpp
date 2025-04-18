@@ -1,10 +1,10 @@
 #include "../../include/engine/two_merge_iterator.h"
 #include <memory>
 
-TwoMergeIterator::TwoMergeIterator() {}
+TwoMergeIterator::TwoMergeIterator(uint64_t max_tranc_id) : max_tranc_id_(max_tranc_id) {}
 
-TwoMergeIterator::TwoMergeIterator(std::shared_ptr<BaseIterator> a, std::shared_ptr<BaseIterator> b)
-    : it_a(std::move(a)), it_b(move(b))
+TwoMergeIterator::TwoMergeIterator(std::shared_ptr<BaseIterator> a, std::shared_ptr<BaseIterator> b, uint64_t max_tranc_id)
+    : max_tranc_id_(max_tranc_id), it_a(std::move(a)), it_b(move(b))
 {
     skip_it_b();
     choose_a = choose_it_a();
@@ -34,6 +34,11 @@ void TwoMergeIterator::skip_it_b()
     {
         ++(*it_b); // 递增it_b
     }
+}
+
+uint64_t TwoMergeIterator::get_tranc_id() const
+{
+    return max_tranc_id_;
 }
 
 BaseIterator &TwoMergeIterator::operator++()

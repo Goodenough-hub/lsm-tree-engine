@@ -7,22 +7,56 @@
 #include <cstdlib>
 #include <random>
 #include <functional>
+#include "../iterator/iterator.h"
 
 // 跳表的节点
+// 允许多个key连续出现，通过tranc_id进行进一步的区分
 struct SkipListNode
 {
     std::string key;   // 节点存储的键
     std::string value; // 节点存储的值
+    uint64_t tranc_id; // 事务ID
+
     std::vector<std::shared_ptr<SkipListNode>>
         forward; // 指向不同层级的下一个节点的指针数组，shared_ptr是为了在多层级中保持对下一个节点的强引用，确保节点在有引用时不会被销毁。
     std::vector<std::weak_ptr<SkipListNode>>
         backward; // 指向不同层级的下一个节点的指针数组，weak_ptr 是为了避免双向链表中出现循环引用导致内存泄漏，同时允许反向遍历时获取节点。
-    SkipListNode(const std::string &k, const std::string &v, int level)
+    SkipListNode(const std::string &k, const std::string &v, int level, uint64_t tranc_id)
         : key(k), value(v), forward(level, nullptr),
-          backward(level, std::weak_ptr<SkipListNode>()) {}
+          backward(level, std::weak_ptr<SkipListNode>()), tranc_id(tranc_id) {}
     void set_backward(int level, std::shared_ptr<SkipListNode> node)
     {
         backward[level] = std::weak_ptr<SkipListNode>(node);
+    }
+
+    bool operator<(const SkipListNode &other) const
+    {
+        if (key == other.key)
+        {
+            // key相同时，事务id更大的优先级更高
+            return tranc_id > other.tranc_id;
+        }
+        return key < other.key;
+    }
+
+    bool operator>(const SkipListNode &other) const
+    {
+        if (key == other.key)
+        {
+            // key相同时，事务id更大的优先级更高
+            return tranc_id < other.tranc_id;
+        }
+        return key > other.key;
+    }
+
+    bool operator==(const SkipListNode &other) const
+    {
+        return key == other.key && tranc_id == other.tranc_id && value == other.value;
+    }
+
+    bool operator!=(const SkipListNode &other) const
+    {
+        return !(*this == other);
     }
 };
 
@@ -44,8 +78,8 @@ private:
 
 public:
     SkipList(int max_level = 16); // 默认的最大层数为16
-    void put(const std::string &key, const std::string &value);
-    std::optional<std::string> get(const std::string &key);
+    void put(const std::string &key, const std::string &value, uint64_t tranc_id);
+    SkipListIterator get(const std::string &key, uint64_t tranc_id);
     void remove(const std::string &key);
     void clear();
 
@@ -59,10 +93,10 @@ public:
 
     size_t get_size() const;
 
-    std::vector<std::pair<std::string, std::string>> flush(); // 获取键值对
+    std::vector<std::tuple<std::string, std::string, uint64_t>> flush(); // 获取键值对
 };
 
-class SkipListIterator
+class SkipListIterator : public BaseIterator
 {
 private:
     std::shared_ptr<SkipListNode> current;
@@ -70,14 +104,18 @@ private:
 public:
     SkipListIterator(std::shared_ptr<SkipListNode> node) : current(node) {};
 
-    SkipListIterator &operator++();   // 前置自增
-    SkipListIterator operator++(int); // 后置自增
-    bool operator==(const SkipListIterator &other) const;
-    bool operator!=(const SkipListIterator &other) const;
+    BaseIterator &operator++() override; // 前置自增
+    bool operator==(const BaseIterator &other) const override;
+    bool operator!=(const BaseIterator &other) const override;
+
+    value_type operator*() const override;
+
+    IteratorType get_type() const override;
 
     std::string get_key() const;
     std::string get_value() const;
 
-    bool is_valid() const;
-    bool is_end() const;
+    bool is_valid() const override;
+    bool is_end() const override;
+    uint64_t get_tranc_id() const override;
 };

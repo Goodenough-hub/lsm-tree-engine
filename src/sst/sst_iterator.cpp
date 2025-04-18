@@ -3,7 +3,7 @@
 #include <memory>
 
 // 谓词查询
-std::optional<std::pair<SstIterator, SstIterator>> sst_iters_monotony_predicate(std::shared_ptr<SST> sst, std::function<int(const std::string &)> predicate)
+std::optional<std::pair<SstIterator, SstIterator>> sst_iters_monotony_predicate(uint64_t max_tranc_id, std::shared_ptr<SST> sst, std::function<int(const std::string &)> predicate)
 {
     // 初始化，分别用于存储最终的起始迭代器和结束迭代器。初始值为std::nullopt，表示尚未找到有效结果。
     std::optional<SstIterator> final_begin = std::nullopt;
@@ -24,7 +24,7 @@ std::optional<std::pair<SstIterator, SstIterator>> sst_iters_monotony_predicate(
         }
 
         // 对当前数据块执行谓词查询，返回一个std::optional对象，包含一对BlockIterator（起始迭代器和结束迭代器）。
-        auto result_i = block->get_monotony_predicate(predicate);
+        auto result_i = block->get_monotony_predicate(max_tranc_id, predicate);
 
         if (result_i.has_value())
         {
@@ -36,14 +36,14 @@ std::optional<std::pair<SstIterator, SstIterator>> sst_iters_monotony_predicate(
                 // 置temp_it的块索引为block_idx，并将其块内迭代器设置为i_begin。
                 // 将temp_it赋值给final_begin。
 
-                auto temp_it = SstIterator(sst);
+                auto temp_it = SstIterator(sst, max_tranc_id);
                 temp_it.set_block_idx(block_idx);
                 temp_it.set_block_it(i_begin);
                 final_begin = temp_it;
             }
 
             // 设置结束迭代器
-            auto temp_it = SstIterator(sst);
+            auto temp_it = SstIterator(sst, max_tranc_id);
             temp_it.set_block_idx(block_idx);
             temp_it.set_block_it(i_end);
             if (!temp_it.is_valid())
@@ -61,7 +61,7 @@ std::optional<std::pair<SstIterator, SstIterator>> sst_iters_monotony_predicate(
     return std::make_pair(final_begin.value(), final_end.value());
 }
 
-SstIterator::SstIterator(std::shared_ptr<SST> sst, const std::string &key) : m_sst(std::move(sst)), cached_value(std::nullopt)
+SstIterator::SstIterator(std::shared_ptr<SST> sst, const std::string &key, uint64_t max_tranc_id) : m_sst(std::move(sst)), cached_value(std::nullopt), max_tranc_id_(max_tranc_id)
 {
     if (m_sst)
     {
@@ -136,7 +136,7 @@ BaseIterator &SstIterator::operator++()
         if (m_block_idx < m_sst->num_blocks())
         {
             auto new_block = m_sst->read_block(m_block_idx);
-            BlockIterator new_blk_it(new_block, 0);
+            BlockIterator new_blk_it(new_block, 0, max_tranc_id_);
             (*m_block_iter) = new_blk_it;
         }
         else
@@ -145,6 +145,11 @@ BaseIterator &SstIterator::operator++()
         }
     }
     return *this;
+}
+
+uint64_t SstIterator::get_tranc_id() const
+{
+    return m_block_iter->get_tranc_id();
 }
 
 bool SstIterator::operator==(const BaseIterator &other) const

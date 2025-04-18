@@ -30,11 +30,13 @@ int SkipList::random_level()
   return level; // [1, max_level]
 }
 
-void SkipList::put(const std::string &key, const std::string &value)
+void SkipList::put(const std::string &key, const std::string &value, uint64_t tranc_id)
 {
   //   if (value.empty()) {
   //     throw std::runtime_error("value cannot be empty"); // 值为空，抛出异常
   //   }
+  int new_level = std::max(random_level(), current_level);
+  auto new_node = std::make_shared<SkipListNode>(key, value, new_level);
 
   //   标记当前的节点
   //   初始化当前节点为头节点 head，用于遍历跳表
@@ -46,7 +48,7 @@ void SkipList::put(const std::string &key, const std::string &value)
   // 从最高层开始向下遍历，找到每一层中小于给定 key 的最大节点，并将其记录到 update 中。
   for (int i = current_level - 1; i >= 0; i--)
   {
-    while (current->forward[i] && current->forward[i]->key < key)
+    while (current->forward[i] && *current->forward[i] < *new_node)
     {
       current = current->forward[i];
     }
@@ -57,10 +59,11 @@ void SkipList::put(const std::string &key, const std::string &value)
   current = current->forward[0];
 
   // 判断 key 是否存在
-  if (current && current->key == key)
+  if (current && current->key == key && current->tranc_id == tranc_id)
   {
     size_bytes += value.size() - current->value.size();
     current->value = value;
+    current->tranc_id = tranc_id;
     return;
   }
 
@@ -71,8 +74,7 @@ void SkipList::put(const std::string &key, const std::string &value)
     update[i] = head;
   }
 
-  auto new_node = std::make_shared<SkipListNode>(key, value, new_level);
-  size_bytes += new_node->key.size() + new_node->value.size();
+  size_bytes += new_node->key.size() + new_node->value.size() + sizeof(uint64_t);
 
   // 三种状态的update
   // 第0层一定更新
@@ -157,7 +159,7 @@ void SkipList::remove(const std::string &key)
   }
 }
 
-std::optional<std::string> SkipList::get(const std::string &key)
+SkipListIterator SkipList::get(const std::string &key, uint64_t tranc_id)
 {
   auto current = head;
 
@@ -172,16 +174,42 @@ std::optional<std::string> SkipList::get(const std::string &key)
 
   // 移动到最底层
   current = current->forward[0];
-  if (current && current->key == key)
+  if (tranc_id == 0)
   {
-    return current->value;
+    // trancId == 0 表示没有开启事务，直接返回最新的记录
+    if (current && current->key == key)
+    {
+      return SkipListIterator(current);
+    }
   }
   else
   {
-    return std::nullopt;
+    while (current && current->key == key)
+    {
+      // 只返回小于等于事务id的记录
+      // 且最接近事务id
+      if (tranc_id != 0)
+      {
+        if (current->tranc_id <= tranc_id)
+        {
+          // 满足事务的可见性
+          return SkipListIterator(current);
+        }
+        else
+        {
+          // 跳过一次
+          // 出现的连续key的事务是从大到小的
+          current = current->forward[0];
+        }
+      }
+      else
+      {
+        // 满足事务的可见性
+        return SkipListIterator(current);
+      }
+    }
   }
-
-  return std::nullopt;
+  return SkipListIterator(nullptr);
 }
 
 void SkipList::clear()
@@ -205,21 +233,21 @@ size_t SkipList::get_size() const
   return size_bytes;
 }
 
-std::vector<std::pair<std::string, std::string>> SkipList::flush()
+std::vector<std::tuple<std::string, std::string, uint64_t>> SkipList::flush()
 {
-  std::vector<std::pair<std::string, std::string>> res;
+  std::vector<std::tuple<std::string, std::string, uint64_t>> res;
   auto node = head->forward[0];
 
   while (node)
   {
-    res.emplace_back(node->key, node->value);
+    res.emplace_back(node->key, node->value, node->tranc_id);
     node = node->forward[0];
   }
   return res;
 }
 
 /*********************** SkipListIterator *******************/
-SkipListIterator &SkipListIterator::operator++()
+BaseIterator &SkipListIterator::operator++()
 {
   if (current)
   {
@@ -228,20 +256,44 @@ SkipListIterator &SkipListIterator::operator++()
   return *this;
 }
 
-SkipListIterator SkipListIterator::operator++(int)
+// SkipListIterator SkipListIterator::operator++(int)
+// {
+//   SkipListIterator temp = *this;
+//   ++*this;
+//   return temp;
+// }
+
+IteratorType SkipListIterator::get_type() const
 {
-  SkipListIterator temp = *this;
-  ++*this;
-  return temp;
+  return IteratorType::SkipListIterator;
 }
 
-bool SkipListIterator::operator==(const SkipListIterator &other) const
+bool SkipListIterator::operator==(const BaseIterator &other) const
 {
-  return current == other.current;
+  if (other.get_type() != IteratorType::SkipListIterator)
+  {
+    return false;
+  }
+  auto other_iter = dynamic_cast<const SkipListIterator &>(other);
+  return current == other_iter.current;
 }
-bool SkipListIterator::operator!=(const SkipListIterator &other) const
+bool SkipListIterator::operator!=(const BaseIterator &other) const
 {
-  return current != other.current;
+  return !(*this == other);
+}
+
+BaseIterator::value_type SkipListIterator::operator*() const
+{
+  if (!current)
+  {
+    throw std::runtime_error("SkipIterator: deference null pointer");
+  }
+  return std::make_pair(current->key, current->value);
+}
+
+uint64_t SkipListIterator::get_tranc_id() const
+{
+  return current->tranc_id;
 }
 
 std::string SkipListIterator::get_key() const

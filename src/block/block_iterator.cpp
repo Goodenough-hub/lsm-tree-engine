@@ -2,11 +2,13 @@
 #include "../../include/block/block.h"
 #include <optional>
 
-BlockIterator::BlockIterator(std::shared_ptr<Block> b, size_t index) : block(std::move(b)), current_index(index), cached_value(std::nullopt) {}
+BlockIterator::BlockIterator(std::shared_ptr<Block> b, size_t index, uint64_t tranc_id)
+    : block(std::move(b)), current_index(index), cached_value(std::nullopt), max_tranc_id_(tranc_id) {}
 
-BlockIterator::BlockIterator(std::shared_ptr<Block> b, const std::string &key) : block(std::move(b)), cached_value(std::nullopt)
+BlockIterator::BlockIterator(std::shared_ptr<Block> b, const std::string &key, uint64_t tranc_id)
+    : block(std::move(b)), cached_value(std::nullopt), max_tranc_id_(tranc_id)
 {
-    auto key_idx_ops = block->get_idx_binary(key);
+    auto key_idx_ops = block->get_idx_binary(key, tranc_id);
     if (key_idx_ops.has_value())
     {
         current_index = key_idx_ops.value();
@@ -89,6 +91,10 @@ IteratorType BlockIterator::get_type() const
     return IteratorType::BlockIterator;
 }
 
+uint64_t BlockIterator::get_tranc_id() const
+{
+    return max_tranc_id_;
+}
 void BlockIterator::update_current() const
 {
     if (!cached_value && current_index < block->offsets.size())
