@@ -92,7 +92,7 @@ LSMEngine::LSMEngine(const std::string path) : data_dir(path)
             // 加载sst文件
             std::unique_lock<std::shared_mutex> lock(ssts_mtx);
             std::string sst_path = get_sst_path(sst_id);
-            auto sst = SST::open(sst_id, FileObj::open(sst_path), block_cache);
+            auto sst = SST::open(sst_id, FileObj::open(sst_path, false), block_cache);
             ssts[sst_id] = sst;
 
             l0_sst_ids.push_back(sst_id);
@@ -132,7 +132,7 @@ void LSMEngine::put_batch(const std::vector<std::pair<std::string, std::string>>
     }
 }
 
-std::optional<std::string> LSMEngine::get(const std::string &key, uint64_t tranc_id)
+std::optional<std::pair<std::string, uint64_t>> LSMEngine::get(const std::string &key, uint64_t tranc_id)
 {
     // 1.先从memtable中查找
     SkipListIterator value = memtable.get(key, tranc_id);
@@ -140,7 +140,7 @@ std::optional<std::string> LSMEngine::get(const std::string &key, uint64_t tranc
     {
         if (value.get_value().size() > 0)
         {
-            return value.get_value();
+            return std::make_pair(value.get_value(), value.get_tranc_id());
         }
         else
         {
@@ -148,7 +148,13 @@ std::optional<std::string> LSMEngine::get(const std::string &key, uint64_t tranc
             return std::nullopt;
         }
     }
-
+    // 2. l0_sst查询
+    std::shared_lock<std::shared_mutex> rlock(ssts_mtx);
+    return sst_get_(key, tranc_id);
+}
+std::optional<std::pair<std::string, uint64_t>>
+LSMEngine::sst_get_(const std::string &key, uint64_t tranc_id)
+{
     // 2. l0_sst查询
     std::shared_lock<std::shared_mutex> lock(ssts_mtx);
     for (auto &sst_id : l0_sst_ids)
@@ -159,7 +165,7 @@ std::optional<std::string> LSMEngine::get(const std::string &key, uint64_t tranc
         {
             if ((res->second.size() > 0))
             {
-                return res->second;
+                return std::make_pair(res->second, res.get_tranc_id());
             }
             else
             {
@@ -220,4 +226,10 @@ void LSMEngine::flush()
 
     // 5.更新id
     l0_sst_ids.push_front(new_sst_id);
+}
+
+std::shared_ptr<TranContext>
+LSM::begin_transaction(const enum IsolationLevel &isolation_level)
+{
+    return tran_->new_tranc(isolation_level);
 }

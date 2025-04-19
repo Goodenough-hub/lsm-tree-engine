@@ -109,18 +109,19 @@ std::optional<std::pair<HeapIterator, HeapIterator>> Memtable::iter_monotony_pre
 SkipListIterator Memtable::get(const std::string &key, uint64_t tranc_id)
 {
     // current table中找
+    std::shared_lock<std::shared_mutex> lock2(frozen_mtx);
     std::shared_lock<std::shared_mutex> lock1(cur_mtx);
 
+    return get_(key, tranc_id);
+}
+
+SkipListIterator Memtable::get_(const std::string &key, uint64_t tranc_id)
+{
     auto result1 = cur_get_(key, tranc_id);
     if (result1.is_valid())
     {
         return result1;
     }
-
-    lock1.unlock();
-
-    // frozen table中找
-    std::shared_lock<std::shared_mutex> lock2(frozen_mtx);
 
     return frozen_get_(key, tranc_id);
 }

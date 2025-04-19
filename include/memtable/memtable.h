@@ -9,6 +9,8 @@
 
 class Memtable
 {
+    friend class TranContext;
+
 private:
     std::shared_ptr<SkipList> current_table;
     std::list<std::shared_ptr<SkipList>> frozen_tables;
@@ -35,6 +37,7 @@ public:
     std::optional<std::pair<HeapIterator, HeapIterator>> iter_monotony_predicate(uint64_t tranc_id, std::function<int(const std::string &)> predicate);
 
     SkipListIterator get(const std::string &key, uint64_t tranc_id);
+    SkipListIterator get_(const std::string &key, uint64_t tranc_id);
     std::vector<SkipListIterator> get_batch(const std::vector<std::string> &keys, uint64_t tranc_id);
 
     size_t get_cur_size();

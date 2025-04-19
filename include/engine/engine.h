@@ -4,14 +4,19 @@
 #include "../block/block_cache.h"
 #include "../sst/sst.h"
 #include "two_merge_iterator.h"
+#include "transaction.h"
 #include <memory>
 #include <shared_mutex>
 #include <cstring>
 #include <unordered_map>
 #include <optional>
 
+class TranContext;
+
 class LSMEngine
 {
+    friend class TranContext;
+
 private:
     std::string data_dir;
     Memtable memtable;
@@ -32,11 +37,25 @@ public:
     ~LSMEngine();
     void put(const std::string &key, const std::string &value, uint64_t tranc_id);
     void put_batch(const std::vector<std::pair<std::string, std::string>> &kvs, uint64_t tranc_id);
-    std::optional<std::string> get(const std::string &key, uint64_t tranc_id);
+    std::optional<std::pair<std::string, uint64_t>> get(const std::string &key, uint64_t tranc_id);
+    std::optional<std::pair<std::string, uint64_t>> sst_get_(const std::string &key, uint64_t tranc_id);
     void remove(const std::string &key, uint64_t tranc_id);
     void remove_batch(const std::vector<std::string> &keys, uint64_t tranc_id);
 
     void clear();
 
     std::optional<std::pair<TwoMergeIterator, TwoMergeIterator>> iter_monotony_predicate(uint64_t tranc_id, std::function<int(const std::string &)> predicate);
+};
+
+class LSM
+{
+public:
+    // TODO: 实现WAL后修改启动流程
+    LSM(std::string path);
+
+    std::shared_ptr<TranContext> begin_transaction(const enum IsolationLevel &isolation_level);
+
+private:
+    std::shared_ptr<LSMEngine> engine_;
+    std::shared_ptr<TranManager> tran_;
 };
