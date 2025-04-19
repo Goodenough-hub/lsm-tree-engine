@@ -32,8 +32,17 @@ public:
     static FileObj create_and_write(const std::string &filename, std::vector<uint8_t> &buf);
 
     // 打开文件对象
-    static FileObj open(const std::string &filename);
+    static FileObj open(const std::string &filename, bool create);
 
     // 读取文件
     std::vector<uint8_t> read_to_slice(size_t offset, size_t len);
+
+    bool write(uint64_t offset, const std::vector<uint8_t> &buf);
+    bool write_uint64(uint64_t offset, const uint64_t &val);
+    bool write_uint32(uint64_t offset, const uint32_t &val);
+    bool write_uint16(uint64_t offset, const uint16_t &val);
+
+    uint64_t read_uint64(uint64_t offset);
+    uint32_t read_uint32(uint64_t offset);
+    uint16_t read_uint16(uint64_t offset);
 };

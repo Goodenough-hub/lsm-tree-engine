@@ -47,10 +47,10 @@ FileObj FileObj::create_and_write(const std::string &filename, std::vector<uint8
     return std::move(file_obj);
 }
 
-FileObj FileObj::open(const std::string &path)
+FileObj FileObj::open(const std::string &path, bool create)
 {
     FileObj file_obj;
-    if (!file_obj.m_file->open(path, false))
+    if (!file_obj.m_file->open(path, create))
     {
         throw std::runtime_error("open file failed");
     }
@@ -68,4 +68,60 @@ std::vector<uint8_t> FileObj::read_to_slice(size_t offset, size_t len)
     auto res = m_file->read(offset, len);
 
     return res;
+}
+
+bool FileObj::write(uint64_t offset, const std::vector<uint8_t> &buf)
+{
+    return m_file->write(offset, buf.data(), buf.size());
+}
+
+bool FileObj::write_uint64(uint64_t offset, const uint64_t &val)
+{
+    return m_file->write(offset, &val, sizeof(val));
+}
+
+bool FileObj::write_uint32(uint64_t offset, const uint32_t &val)
+{
+    return m_file->write(offset, &val, sizeof(val));
+}
+
+bool FileObj::write_uint16(uint64_t offset, const uint16_t &val)
+{
+    return m_file->write(offset, &val, sizeof(val));
+}
+
+uint64_t FileObj::read_uint64(uint64_t offset)
+{
+    // 边界检查
+    if (offset + sizeof(uint64_t) > size())
+    {
+        throw std::runtime_error("read out of range");
+    }
+
+    auto result = m_file->read(offset, sizeof(uint64_t));
+    return *reinterpret_cast<uint64_t *>(result.data());
+}
+
+uint32_t FileObj::read_uint32(uint64_t offset)
+{
+    // 边界检查
+    if (offset + sizeof(uint32_t) > size())
+    {
+        throw std::runtime_error("read out of range");
+    }
+
+    auto result = m_file->read(offset, sizeof(uint32_t));
+    return *reinterpret_cast<uint32_t *>(result.data());
+}
+
+uint16_t FileObj::read_uint16(uint64_t offset)
+{
+    // 边界检查
+    if (offset + sizeof(uint16_t) > size())
+    {
+        throw std::runtime_error("read out of range");
+    }
+
+    auto result = m_file->read(offset, sizeof(uint16_t));
+    return *reinterpret_cast<uint16_t *>(result.data());
 }
