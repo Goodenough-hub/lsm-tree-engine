@@ -45,4 +45,8 @@ public:
     uint64_t read_uint64(uint64_t offset);
     uint32_t read_uint32(uint64_t offset);
     uint16_t read_uint16(uint64_t offset);
+
+    bool append(std::vector<uint8_t> buf);
+
+    bool sync();
 };

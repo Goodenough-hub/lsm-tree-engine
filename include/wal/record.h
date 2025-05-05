@@ -26,4 +26,7 @@ public:
     static Record deleteRecord(uint64_t tranc_id, const std::string &key);
     static Record commitRecord(uint64_t tranc_id);
     static Record rollbackRecord(uint64_t tranc_id);
+
+    std::vector<uint8_t> encode() const;
+    std::vector<Record> decode(const std::vector<uint8_t> &data);
 };

@@ -125,3 +125,22 @@ uint16_t FileObj::read_uint16(uint64_t offset)
     auto result = m_file->read(offset, sizeof(uint16_t));
     return *reinterpret_cast<uint16_t *>(result.data());
 }
+
+// 将给定的字节缓冲区追加到文件末尾
+bool FileObj::append(std::vector<uint8_t> buf)
+{
+    auto file_size = m_file->size();
+
+    if(!m_file->write(file_size, buf.data(), buf.size()))
+    {
+        return false;
+    }
+    
+    m_size += buf.size();
+    return true;
+}
+
+bool FileObj::sync()
+{
+    return m_file->sync();
+}
