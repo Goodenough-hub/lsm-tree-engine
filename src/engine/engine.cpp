@@ -228,6 +228,31 @@ void LSMEngine::flush()
     l0_sst_ids.push_front(new_sst_id);
 }
 
+// ****************LSM***********************
+
+LSM::LSM(std::string path) : engine_(std::make_shared<LSMEngine>(path)),
+     tran_(std::make_shared<TranManager>(path, IsolationLevel::ReadCommitted))
+{
+    tran_->set_engine(engine_);
+    std::map<uint64_t, std::vector<Record>> check_recover_res = tran_->check_recover();
+
+    for(auto &[tranc_id, records] : check_recover_res)
+    {
+        for(auto &record : records)
+        {
+            if(record.op_type_ == Record::OperationType::Put)
+            {
+                engine_->put(record.key_, record.value_, tranc_id);
+            }
+            else if(record.op_type_ == Record::OperationType::Delete)
+            {
+                engine_->remove(record.key_, tranc_id);
+            }
+        }
+    }
+    tran_->init_new_wal();
+}
+
 std::shared_ptr<TranContext>
 LSM::begin_transaction(const enum IsolationLevel &isolation_level)
 {

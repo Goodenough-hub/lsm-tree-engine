@@ -21,6 +21,7 @@ enum class IsolationLevel // 定义隔离级别
 
 class LSMEngine;
 class TranManager;
+class Wal;
 
 // 定义事务的上下文，封装了事务操作记录和状态
 class TranContext
@@ -73,6 +74,13 @@ public:
 
     uint64_t get_max_flushed_tranc_id();
 
+    void init_new_wal();
+
+    bool write_to_wal(std::vector<Record> operations);
+
+    void update_max_flushed_tranc_id(uint64_t max_flushed_tranc_id_);
+    void update_max_finished_tranc_id(uint64_t max_finished_tranc_id_);
+
 private:
     std::string get_tranc_id_file_path();
     void read_tranc_id_file();
@@ -82,6 +90,7 @@ private:
 private:
     mutable std::mutex mutex_;
     std::shared_ptr<LSMEngine> engine_;
+    std::shared_ptr<Wal> wal_;
     // TODO: WAL相关类
     std::string data_dir_; // 数据目录路径，用于存储事务相关文件
     // enum IsolationLevel isolation_level_; // 事务隔离级别

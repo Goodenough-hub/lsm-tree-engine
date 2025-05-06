@@ -13,7 +13,7 @@ enum class OperationType
 
 class Record
 {
-private:
+public:
     uint64_t tranc_id_;
     OperationType op_type_;
     std::string key_;
@@ -28,5 +28,5 @@ public:
     static Record rollbackRecord(uint64_t tranc_id);
 
     std::vector<uint8_t> encode() const;
-    std::vector<Record> decode(const std::vector<uint8_t> &data);
+    static std::vector<Record> decode(const std::vector<uint8_t> &data);
 };

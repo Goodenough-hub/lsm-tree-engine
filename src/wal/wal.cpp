@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <mutex>
 #include <string>
+#include <vector>
 
 Wal::Wal(const std::string &log_dir, size_t buffer_size,
          uint64_t max_finished_tranc_id, size_t file_size_limit,
@@ -65,4 +66,54 @@ void Wal::flush() {
 void Wal::set_max_finished_tranc_id(uint64_t max_finished_tranc_id) {
   std::unique_lock<std::mutex> lock(mutex_);
   max_finished_tranc_id_ = max_finished_tranc_id;
+}
+
+// 从指定目录中恢复wal日志文件，并解析其中的记录。
+// 其中包括：检查日志是否存在，遍历目录中的WAL文件，按文件序号排序，读取并解析文件内容，筛选出事务ID大于指定最大值的记录
+// 返回值是：按事务ID分组的记录
+std::map<uint64_t, std::vector<Record>>
+Wal::recover(const std::string &log_dir, uint64_t max_flashed_tranc_id) {
+  std::map<uint64_t, std::vector<Record>> wal_records;
+
+  if (!std::filesystem::exists(log_dir)) {
+    return wal_records;
+  }
+
+  // 遍历wal文件, 解析
+  std::vector<std::string> wal_paths;
+
+  for (auto &entry : std::filesystem::directory_iterator(log_dir)) {
+    if (!entry.is_regular_file()) {
+      continue;
+    }
+
+    std::string filename = entry.path().filename().string();
+    if (filename.substr(0, 4) != "wal.") {
+      continue;
+    }
+
+    wal_paths.push_back(entry.path());
+  }
+
+  std::sort(wal_paths.begin(), wal_paths.end(),
+            [](const std::string &a, const std::string &b) {
+              auto a_seq_str = a.substr(a.find_last_of(".") + 1);
+              auto b_seq_str = b.substr(b.find_last_of(".") + 1);
+              return std::stoi(a_seq_str) < std::stoi(b_seq_str);
+            });
+
+  // 读取所有的记录
+  for (const auto &wal_path : wal_paths) {
+    FileObj wal_file = FileObj::open(wal_path, false);
+    auto wal_file_slice = wal_file.read_to_slice(0, wal_file.size());
+    auto records = Record::decode(wal_file_slice);
+
+    for (const auto &record : records) {
+      if (record.tranc_id_ > max_flashed_tranc_id) {
+        wal_records[record.tranc_id_].push_back(record);
+      }
+    }
+  }
+
+  return wal_records;
 }
