@@ -34,4 +34,6 @@ public:
     std::vector<uint8_t> read(size_t offset, size_t size);
 
     bool sync(); // 同步
+    
+    bool remove();
 };

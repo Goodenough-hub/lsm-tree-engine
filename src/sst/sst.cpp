@@ -333,3 +333,8 @@ std::pair<uint64_t, uint64_t> SST::get_tranc_id_range() const
 {
     return std::make_pair(min_tranc_id_, max_tranc_id_);
 }
+
+void SST::del_sst()
+{
+    file.del_file();
+}

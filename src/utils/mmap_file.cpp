@@ -153,3 +153,12 @@ bool MmapFile::sync()
         return msync(mapped_data_, file_size_, MS_SYNC) == 0;
     return true;
 }
+
+bool MmapFile::remove()
+{
+    if(fd_ != -1)
+    {
+        close();
+    }
+    return ::remove(filename_.c_str()) == 0;
+}

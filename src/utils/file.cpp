@@ -144,3 +144,8 @@ bool FileObj::sync()
 {
     return m_file->sync();
 }
+
+void  FileObj::del_file()
+{
+    m_file->remove();
+}

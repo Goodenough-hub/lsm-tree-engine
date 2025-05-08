@@ -29,6 +29,8 @@ public:
     // 同步
     bool sync();
 
+    bool remove();
+
 private:
     int fd_;
     void *mapped_data_; // 映射的地址

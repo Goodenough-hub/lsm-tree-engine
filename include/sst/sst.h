@@ -52,6 +52,8 @@ public:
     size_t get_sst_id() const;
 
     std::pair<uint64_t, uint64_t> get_tranc_id_range() const;
+
+    void del_sst();
 };
 
 class SSTBuilder

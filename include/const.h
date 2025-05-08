@@ -21,4 +21,6 @@
 #define REDIS_SET_PREFIX "REDIS_SET_PREFIX_"
 #define REDIS_FILED_SEPARATOR '$'
 
-#define REDIS_LIST_SEPARATOR '#'
+#define REDIS_LIST_SEPARATOR '#' // 链表元素的分隔符
+
+#define LSM_SST_LEVEL_RATIO 16

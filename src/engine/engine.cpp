@@ -1,5 +1,7 @@
 #include "../../include/engine/engine.h"
 #include "../../include/const.h"
+#include "../../include/sst/concat_iterator.h"
+#include <algorithm>
 #include <sstream>
 #include <iomanip>
 #include <filesystem>
@@ -95,10 +97,10 @@ LSMEngine::LSMEngine(const std::string path) : data_dir(path)
             auto sst = SST::open(sst_id, FileObj::open(sst_path, false), block_cache);
             ssts[sst_id] = sst;
 
-            l0_sst_ids.push_back(sst_id);
+            level_sst_ids[0].push_back(sst_id);
         }
-        l0_sst_ids.sort();
-        l0_sst_ids.reverse();
+        std::sort(level_sst_ids[0].begin(), level_sst_ids[0].end());
+        std::reverse(level_sst_ids[0].begin(), level_sst_ids[0].end());
     }
 }
 
@@ -157,7 +159,7 @@ LSMEngine::sst_get_(const std::string &key, uint64_t tranc_id)
 {
     // 2. l0_sst查询
     std::shared_lock<std::shared_mutex> lock(ssts_mtx);
-    for (auto &sst_id : l0_sst_ids)
+    for (auto &sst_id : level_sst_ids[0])
     {
         std::shared_ptr<SST> sst = ssts[sst_id];
         auto res = sst->get(key, tranc_id);
@@ -211,8 +213,15 @@ void LSMEngine::flush()
         return;
     }
 
+    if (level_sst_ids.find(0) != level_sst_ids.end() &&
+        level_sst_ids[0].size() > LSM_SST_LEVEL_RATIO) {
+            // 说明已经存在了level0的sst
+            full_compact(0);
+        }
+
     // 1.创建一个新的sst_id
-    size_t new_sst_id = l0_sst_ids.empty() ? 0 : l0_sst_ids.front() + 1;
+    size_t new_sst_id =
+      level_sst_ids[0].empty() ? 0 : level_sst_ids[0].front() + 1;
 
     // 2.构建SST
     SSTBuilder builder(LSM_BLOCK_MEM_LIMIT, true);
@@ -225,7 +234,145 @@ void LSMEngine::flush()
     ssts[new_sst_id] = new_sst;
 
     // 5.更新id
-    l0_sst_ids.push_front(new_sst_id);
+    level_sst_ids[0].push_front(new_sst_id);
+}
+
+void LSMEngine::full_compact(size_t src_level) {
+    // 先判断 compact 是否需要递归进行
+    if (level_sst_ids[src_level + 1].size() >= LSM_SST_LEVEL_RATIO) {
+        full_compact(src_level + 1);
+    }
+
+    auto old_level_id_x = level_sst_ids[src_level];
+    auto old_level_id_y = level_sst_ids[src_level];
+
+    std::vector<std::shared_ptr<SST>> new_ssts;
+    std::vector<size_t> lx_ids(old_level_id_x.begin(), old_level_id_x.end());
+    std::vector<size_t> ly_ids(old_level_id_x.begin(), old_level_id_x.end());
+
+    if (src_level == 0) {
+        new_ssts = full_l0_l1_compact(lx_ids, ly_ids);
+    } else {
+        new_ssts = full_lx_ly_compact(lx_ids, ly_ids, src_level + 1);
+    }
+
+    for (auto &old_sst_id : old_level_id_x) {
+        ssts[old_sst_id]->del_sst();
+        ssts.erase(old_sst_id);
+    }
+    for (auto &old_sst_id : old_level_id_y) {
+        ssts[old_sst_id]->del_sst();
+        ssts.erase(old_sst_id);
+    }
+    level_sst_ids[src_level].clear();
+    level_sst_ids[src_level + 1].clear();
+
+    cur_max_level = std::max(cur_max_level, src_level + 1);
+
+    for (auto &new_sst : new_ssts) {
+        auto sst_id = new_sst->get_sst_id();
+        level_sst_ids[src_level + 1].push_back(sst_id);
+        ssts[sst_id] = new_sst;
+    }
+
+    std::sort(level_sst_ids[src_level + 1].begin(),
+                level_sst_ids[src_level + 1].end());
+}
+  
+std::vector<std::shared_ptr<SST>>
+LSMEngine::full_l0_l1_compact(const std::vector<size_t> &l0_ids,
+                            const std::vector<size_t> &l1_ids) {
+
+    std::vector<SstIterator> l0_iters;
+    std::vector<std::shared_ptr<SST>> l1_ssts;
+
+    for (auto &sst_id : l0_ids) {
+        auto sst = ssts[sst_id];
+        l0_iters.push_back(sst->begin(0));
+    }
+
+    for (auto &sst_id : l1_ids) {
+        auto sst = ssts[sst_id];
+        l1_ssts.push_back(sst);
+    }
+
+    auto [l0_begin, l0_end] = SstIterator::merge_sst_iterator(l0_iters, 0);
+
+    std::shared_ptr<HeapIterator> l0_begin_ptr = std::make_shared<HeapIterator>();
+    *l0_begin_ptr = l0_begin;
+
+    std::shared_ptr<ConcatIterator> old_l1_begin_ptr =
+        std::make_shared<ConcatIterator>(l1_ssts, 0);
+
+    TwoMergeIterator it_begin(l0_begin_ptr, old_l1_begin_ptr, 0);
+
+    return gen_ssts_from_iter(it_begin, get_sst_size(1), 1);
+}
+  
+std::vector<std::shared_ptr<SST>>
+LSMEngine::full_lx_ly_compact(const std::vector<size_t> &lx_ids,
+                            const std::vector<size_t> &ly_ids,
+                            size_t y_level) {
+    std::vector<std::shared_ptr<SST>> lx_ssts;
+    std::vector<std::shared_ptr<SST>> ly_ssts;
+
+    for (auto &sst_id : lx_ids) {
+        auto sst = ssts[sst_id];
+        lx_ssts.push_back(sst);
+    }
+
+    for (auto &sst_id : ly_ids) {
+        auto sst = ssts[sst_id];
+        ly_ssts.push_back(sst);
+    }
+
+    std::shared_ptr<ConcatIterator> old_lx_begin_ptr =
+        std::make_shared<ConcatIterator>(lx_ssts, 0);
+
+    std::shared_ptr<ConcatIterator> old_ly_begin_ptr =
+        std::make_shared<ConcatIterator>(lx_ssts, 0);
+
+    TwoMergeIterator it_begin(old_lx_begin_ptr, old_ly_begin_ptr, 0);
+
+    return gen_ssts_from_iter(it_begin, get_sst_size(y_level), 1);
+}
+  
+std::vector<std::shared_ptr<SST>>
+LSMEngine::gen_ssts_from_iter(BaseIterator &iter, size_t target_sst_size,
+                            size_t target_sst_level) {
+    std::vector<std::shared_ptr<SST>> new_ssts;
+    auto new_sst_builder = SSTBuilder(LSM_BLOCK_MEM_SIZE_LIMIT, true);
+
+    while (iter.is_valid() && !iter.is_end()) {
+        new_sst_builder.add((*iter).first, (*iter).second, iter.get_tranc_id());
+        ++iter;
+
+        if (new_sst_builder.estimated_size() >= target_sst_size) {
+        auto sst_id = next_sst_id++;
+        std::string sst_path = get_sst_path(sst_id);
+        auto new_sst =
+            new_sst_builder.build(target_sst_level, sst_path, this->block_cache);
+        new_ssts.push_back(new_sst);
+        new_sst_builder = SSTBuilder(LSM_BLOCK_MEM_SIZE_LIMIT, true);
+        }
+    }
+    if (new_sst_builder.estimated_size() > 0) {
+        auto sst_id = next_sst_id++;
+        std::string sst_path = get_sst_path(sst_id);
+        auto new_sst =
+            new_sst_builder.build(target_sst_level, sst_path, this->block_cache);
+        new_ssts.push_back(new_sst);
+    }
+
+    return new_ssts;
+}
+  
+size_t LSMEngine::get_sst_size(const size_t &level) {
+    size_t sst_size = LSM_PER_MEM_SIZE_LIMIT;
+    for (int i = 1; i <= level; i++) {
+        sst_size *= LSM_SST_LEVEL_RATIO;
+    }
+    return sst_size;
 }
 
 // ****************LSM***********************

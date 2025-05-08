@@ -70,3 +70,12 @@ bool StdFile::sync()
     file_.flush();       // 强制将缓冲区的数据写入到文件中，并清空缓冲区。
     return file_.good(); // 检查文件流是否处于正常状态，写入失败时返回false。
 }
+
+bool StdFile::remove()
+{
+    if(file_.is_open())
+    {
+        file_.close();
+    }
+    return std::filesystem::remove(file_name_);
+}

@@ -49,4 +49,6 @@ public:
     bool append(std::vector<uint8_t> buf);
 
     bool sync();
+
+    void del_file();
 };

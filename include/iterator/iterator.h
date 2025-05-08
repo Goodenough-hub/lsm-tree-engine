@@ -54,6 +54,8 @@ class HeapIterator : public BaseIterator
     using pointer = value_type *;
     using reference = value_type &;
 
+    friend class SSTIterator;
+
 public:
     HeapIterator() = default;
     HeapIterator(std::vector<SearchItem> item_vec, uint64_t tranc_id);

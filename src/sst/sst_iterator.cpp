@@ -147,9 +147,18 @@ BaseIterator &SstIterator::operator++()
     return *this;
 }
 
-uint64_t SstIterator::get_tranc_id() const
-{
-    return m_block_iter->get_tranc_id();
+uint64_t SstIterator::get_tranc_id() const {
+    if (m_block_it) {
+        return m_block_it->get_tranc_id();
+    }
+    return max_tranc_id_;
+}
+
+uint64_t SstIterator::get_sst_id() const {
+    if (m_sst) {
+        return m_sst->get_sst_id();
+    }
+    return 0;
 }
 
 bool SstIterator::operator==(const BaseIterator &other) const
@@ -212,4 +221,23 @@ bool SstIterator::is_end() const
 bool SstIterator::is_valid() const
 {
     return m_block_iter && !m_block_iter->is_end() && m_block_idx < m_sst->num_blocks();
+}
+
+std::pair<HeapIterator, HeapIterator>
+SstIterator::merge_sst_iterator(std::vector<SstIterator> iter_vec,
+                                uint64_t tranc_id) {
+  if (iter_vec.empty()) {
+    return std::make_pair(HeapIterator(), HeapIterator());
+  }
+
+  HeapIterator it_begin;
+  for (auto &it : iter_vec) {
+    while (it.is_valid() && !it.is_end()) {
+      it_begin.items.emplace(it->first, it->second, -it.get_sst_id(), 0,
+                             it.get_tranc_id());
+      ++it;
+    }
+  }
+
+  return std::make_pair(it_begin, HeapIterator());
 }
