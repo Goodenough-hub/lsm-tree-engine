@@ -2,7 +2,8 @@
 #include "../../include/engine/engine.h"
 #include "../../include/wal/wal.h"
 #include <mutex>
-#include <optional>>
+#include <optional>
+#include <filesystem>
 #include <shared_mutex>
 
 TranContext::TranContext(uint64_t tranc_id, std::shared_ptr<LSMEngine> engine,

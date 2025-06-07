@@ -420,8 +420,8 @@ std::optional<std::pair<std::shared_ptr<BlockIterator>, std::shared_ptr<BlockIte
             left = mid + 1;
         }
     }
-    auto it_begin = std::make_shared<BlockIterator>(shared_from_this(), last);
-    auto it_end = std::make_shared<BlockIterator>(shared_from_this(), last + 1);
+    auto it_begin = std::make_shared<BlockIterator>(shared_from_this(), first, tranc_id);
+    auto it_end = std::make_shared<BlockIterator>(shared_from_this(), last + 1, tranc_id);
 
     return std::make_pair(it_begin, it_end);
 }

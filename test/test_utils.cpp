@@ -27,7 +27,7 @@ TEST_F(FileTest, BasicWriteAndRead)
     std::vector<uint8_t> buf = {1, 2, 3, 4, 5};
     FileObj file = FileObj::create_and_write(TEST_FILE, buf);
 
-    auto file_read = FileObj::open(TEST_FILE);
+    auto file_read = FileObj::open(TEST_FILE, true);
     auto read_buf = file_read.read_to_slice(1, 2);
 }
 

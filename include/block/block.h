@@ -40,7 +40,7 @@ public:
     static std::shared_ptr<Block> decode(const std::vector<uint8_t> &encode, bool with_hash = false);
 
     std::string get_first_key();
-    std::optional<std::string> get_value_binary(const std::string &key, uint64_t tranc_id);
+    std::optional<std::string> get_value_binary(const std::string &key, uint64_t tranc_id = 0);
 
     bool add_entry(const std::string key, const std::string &value, uint64_t tranc_id, bool force_write);
 
@@ -49,6 +49,6 @@ public:
 
     std::optional<std::pair<std::shared_ptr<BlockIterator>, std::shared_ptr<BlockIterator>>> get_monotony_predicate(uint64_t tranc_id, std::function<int(const std::string &)> predicate);
 
-    BlockIterator begin(uint64_t tranc_id);
-    BlockIterator end(uint64_t tranc_id);
+    BlockIterator begin(uint64_t tranc_id = 0);
+    BlockIterator end(uint64_t tranc_id = 0);
 };

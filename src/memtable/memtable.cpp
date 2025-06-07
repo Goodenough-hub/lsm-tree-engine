@@ -247,7 +247,7 @@ HeapIterator Memtable::begin(uint64_t tranc_id)
         {
             continue;
         }
-        item_vec.emplace_back(iter.get_key(), iter.get_value(), 0, iter.get_tranc_id());
+        item_vec.emplace_back(iter.get_key(), iter.get_value(), 0, 0, iter.get_tranc_id());
     }
 
     int table_idx = 1;

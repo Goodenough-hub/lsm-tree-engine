@@ -103,7 +103,7 @@ void SstIterator::seek(const std::string &key)
             m_block_iter = nullptr;
             return;
         }
-        m_block_iter = std::make_shared<BlockIterator>(block, key);
+        m_block_iter = std::make_shared<BlockIterator>(block, key, max_tranc_id_);
         if (m_block_iter->is_end())
         {
             // block没法定位到key
@@ -148,8 +148,8 @@ BaseIterator &SstIterator::operator++()
 }
 
 uint64_t SstIterator::get_tranc_id() const {
-    if (m_block_it) {
-        return m_block_it->get_tranc_id();
+    if (m_block_iter) {
+        return m_block_iter->get_tranc_id();
     }
     return max_tranc_id_;
 }

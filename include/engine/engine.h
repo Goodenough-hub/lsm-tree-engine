@@ -10,7 +10,7 @@
 #include <cstring>
 #include <unordered_map>
 #include <optional>
-#include <deuque>
+#include <deque>
 #include <map>
 
 class TranContext;

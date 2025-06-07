@@ -160,5 +160,5 @@ bool MmapFile::remove()
     {
         close();
     }
-    return ::remove(filename_.c_str()) == 0;
+    return ::remove(file_name_.c_str()) == 0;
 }

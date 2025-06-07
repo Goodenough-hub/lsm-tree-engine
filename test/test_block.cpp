@@ -60,44 +60,44 @@ TEST_F(BlockTest, DecodeTest)
     EXPECT_EQ(block->get_first_key(), "apple");
 
     // 验证所有key-value对
-    EXPECT_EQ(block->get_value_binary("apple").value(), "red");
-    EXPECT_EQ(block->get_value_binary("banana").value(), "yellow");
-    EXPECT_EQ(block->get_value_binary("orange").value(), "orange");
+    EXPECT_EQ(block->get_value_binary("apple", 0).value(), "red");
+    EXPECT_EQ(block->get_value_binary("banana", 0).value(), "yellow");
+    EXPECT_EQ(block->get_value_binary("orange", 0).value(), "orange");
 }
 
 // 测试编码
 TEST_F(BlockTest, EncodeTest)
 {
     Block block(1024);
-    block.add_entry("apple", "red");
-    block.add_entry("banana", "yellow");
-    block.add_entry("orange", "orange");
+    block.add_entry("apple", "red", 0, true);
+    block.add_entry("banana", "yellow", 0, true);
+    block.add_entry("orange", "orange", 0, true);
 
     auto encoded = block.encode();
 
     // 解码并验证
     auto decoded = Block::decode(encoded);
-    EXPECT_EQ(decoded->get_value_binary("apple").value(), "red");
-    EXPECT_EQ(decoded->get_value_binary("banana").value(), "yellow");
-    EXPECT_EQ(decoded->get_value_binary("orange").value(), "orange");
+    EXPECT_EQ(decoded->get_value_binary("apple", 0).value(), "red");
+    EXPECT_EQ(decoded->get_value_binary("banana", 0).value(), "yellow");
+    EXPECT_EQ(decoded->get_value_binary("orange", 0).value(), "orange");
 }
 
 // 测试二分查找
 TEST_F(BlockTest, BinarySearchTest)
 {
     Block block(1024);
-    block.add_entry("apple", "red");
-    block.add_entry("banana", "yellow");
-    block.add_entry("orange", "orange");
+    block.add_entry("apple", "red", 0, true);
+    block.add_entry("banana", "yellow", 0, true);
+    block.add_entry("orange", "orange", 0, true);
 
     // 测试存在的key
-    EXPECT_EQ(block.get_value_binary("apple").value(), "red");
-    EXPECT_EQ(block.get_value_binary("banana").value(), "yellow");
-    EXPECT_EQ(block.get_value_binary("orange").value(), "orange");
+    EXPECT_EQ(block.get_value_binary("apple", 0).value(), "red");
+    EXPECT_EQ(block.get_value_binary("banana", 0).value(), "yellow");
+    EXPECT_EQ(block.get_value_binary("orange", 0).value(), "orange");
 
     // 测试不存在的key
-    EXPECT_FALSE(block.get_value_binary("grape").has_value());
-    EXPECT_FALSE(block.get_value_binary("").has_value());
+    EXPECT_FALSE(block.get_value_binary("grape", 0).has_value());
+    EXPECT_FALSE(block.get_value_binary("", 0).has_value());
 }
 
 // 测试边界情况
@@ -107,18 +107,18 @@ TEST_F(BlockTest, EdgeCasesTest)
 
     // 空block
     EXPECT_EQ(block.get_first_key(), "");
-    EXPECT_FALSE(block.get_value_binary("any").has_value());
+    EXPECT_FALSE(block.get_value_binary("any", 0).has_value());
 
     // 添加空key和value
-    block.add_entry("", "");
+    block.add_entry("", "", 0, true);
     EXPECT_EQ(block.get_first_key(), "");
-    EXPECT_EQ(block.get_value_binary("").value(), "");
+    EXPECT_EQ(block.get_value_binary("", 0).value(), "");
 
     // 添加包含特殊字符的key和value
-    block.add_entry("key\0with\tnull", "value\rwith\nnull");
+    block.add_entry("key\0with\tnull", "value\rwith\nnull", 0, true);
     std::string special_key("key\0with\tnull");
     std::string special_value("value\rwith\nnull");
-    EXPECT_EQ(block.get_value_binary(special_key).value(), special_value);
+    EXPECT_EQ(block.get_value_binary(special_key, 0).value(), special_value);
 }
 
 // 测试大数据量
@@ -139,7 +139,7 @@ TEST_F(BlockTest, LargeDataTest)
         snprintf(value_buf, sizeof(value_buf), "value%03d", i);
         std::string value = value_buf;
 
-        block.add_entry(key, value);
+        block.add_entry(key, value, 0, true);
     }
 
     // 验证所有数据
@@ -153,7 +153,7 @@ TEST_F(BlockTest, LargeDataTest)
         snprintf(value_buf, sizeof(value_buf), "value%03d", i);
         std::string expected_value = value_buf;
 
-        EXPECT_EQ(block.get_value_binary(key).value(), expected_value);
+        EXPECT_EQ(block.get_value_binary(key, 0).value(), expected_value);
     }
 }
 
@@ -176,7 +176,7 @@ TEST_F(BlockTest, IteratorTest)
     auto block = std::make_shared<Block>(4096);
 
     // 1. 测试空block的迭代器
-    EXPECT_EQ(block->begin(), block->end());
+    EXPECT_EQ(block->begin(0), block->end(0));
 
     // 2. 添加有序数据
     const int n = 100;
@@ -188,7 +188,7 @@ TEST_F(BlockTest, IteratorTest)
         snprintf(key_buf, sizeof(key_buf), "key%03d", i);
         snprintf(value_buf, sizeof(value_buf), "value%03d", i);
 
-        block->add_entry(key_buf, value_buf);
+        block->add_entry(key_buf, value_buf, 0, true);
         test_data.emplace_back(key_buf, value_buf);
     }
 

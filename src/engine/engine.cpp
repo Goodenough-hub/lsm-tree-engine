@@ -40,7 +40,7 @@ std::optional<std::pair<TwoMergeIterator, TwoMergeIterator>> LSMEngine::iter_mon
     }
 
     // 3.合并结果
-    std::shared_ptr<HeapIterator> l0_iter_ptr = make_shared<HeapIterator>(item_vec);
+    std::shared_ptr<HeapIterator> l0_iter_ptr = make_shared<HeapIterator>(item_vec, 0);
 
     // 4.构造返回结果
     if (!mem_result.has_value()) // 内存表有查询结果时的处理
@@ -341,7 +341,7 @@ std::vector<std::shared_ptr<SST>>
 LSMEngine::gen_ssts_from_iter(BaseIterator &iter, size_t target_sst_size,
                             size_t target_sst_level) {
     std::vector<std::shared_ptr<SST>> new_ssts;
-    auto new_sst_builder = SSTBuilder(LSM_BLOCK_MEM_SIZE_LIMIT, true);
+    auto new_sst_builder = SSTBuilder(LSM_BLOCK_MEM_LIMIT, true);
 
     while (iter.is_valid() && !iter.is_end()) {
         new_sst_builder.add((*iter).first, (*iter).second, iter.get_tranc_id());
@@ -353,7 +353,7 @@ LSMEngine::gen_ssts_from_iter(BaseIterator &iter, size_t target_sst_size,
         auto new_sst =
             new_sst_builder.build(target_sst_level, sst_path, this->block_cache);
         new_ssts.push_back(new_sst);
-        new_sst_builder = SSTBuilder(LSM_BLOCK_MEM_SIZE_LIMIT, true);
+        new_sst_builder = SSTBuilder(LSM_BLOCK_MEM_LIMIT, true);
         }
     }
     if (new_sst_builder.estimated_size() > 0) {
@@ -387,11 +387,11 @@ LSM::LSM(std::string path) : engine_(std::make_shared<LSMEngine>(path)),
     {
         for(auto &record : records)
         {
-            if(record.op_type_ == Record::OperationType::Put)
+            if(record.op_type_ == OperationType::Put)
             {
                 engine_->put(record.key_, record.value_, tranc_id);
             }
-            else if(record.op_type_ == Record::OperationType::Delete)
+            else if(record.op_type_ == OperationType::Delete)
             {
                 engine_->remove(record.key_, tranc_id);
             }

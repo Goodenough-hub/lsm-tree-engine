@@ -24,7 +24,7 @@ BaseIterator &ConcatIterator::operator++() {
 }
 
 bool ConcatIterator::operator==(const BaseIterator &other) const {
-  if (other.get_type() != IteratorType::ConcactIterator) {
+  if (other.get_type() != IteratorType::ConcatIterator) {
     return false;
   }
   if (auto other_iter = dynamic_cast<const ConcatIterator *>(&other)) {
@@ -42,7 +42,7 @@ ConcatIterator::value_type ConcatIterator::operator*() const {
 }
 
 IteratorType ConcatIterator::get_type() const {
-  return IteratorType::ConcactIterator;
+  return IteratorType::ConcatIterator;
 }
 
 bool ConcatIterator::is_end() const {

@@ -1,54 +1,74 @@
 #pragma once
 
 #include "mmap_file.h"
+#include "std_file.h"
+#include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <string>
 #include <vector>
-#include <cstring>
 
-class FileObj
-{
+
+class FileObj {
 private:
-    std::unique_ptr<MmapFile> m_file;
-    size_t m_size;
+  std::unique_ptr<StdFile> m_file;
+  size_t m_size;
 
 public:
-    FileObj();
-    ~FileObj();
+  FileObj();
+  ~FileObj();
 
-    FileObj(const FileObj &) = delete;
-    FileObj &operator=(const FileObj &) = delete;
+  // 禁用拷贝
+  FileObj(const FileObj &) = delete;
+  FileObj &operator=(const FileObj &) = delete;
 
-    // 实现移动语义，noexcept要求不会抛出异常
-    FileObj(FileObj &&) noexcept;
-    FileObj &operator=(FileObj &&) noexcept;
+  // 实现移动语义
+  FileObj(FileObj &&other) noexcept;
 
-    // 文件大小
-    size_t size() const;
+  FileObj &operator=(FileObj &&other) noexcept;
 
-    // 设置文件大小
-    void set_size(size_t size);
+  // 文件大小
+  size_t size() const;
 
-    // 设置文件对象并写入磁盘
-    static FileObj create_and_write(const std::string &filename, std::vector<uint8_t> &buf);
+  // 设置文件大小
+  void set_size(size_t size);
 
-    // 打开文件对象
-    static FileObj open(const std::string &filename, bool create);
+  // 删除文件
+  void del_file();
 
-    // 读取文件
-    std::vector<uint8_t> read_to_slice(size_t offset, size_t len);
+  bool truncate(size_t offset);
 
-    bool write(uint64_t offset, const std::vector<uint8_t> &buf);
-    bool write_uint64(uint64_t offset, const uint64_t &val);
-    bool write_uint32(uint64_t offset, const uint32_t &val);
-    bool write_uint16(uint64_t offset, const uint16_t &val);
+  // 创建文件对象, 并写入到磁盘
+  static FileObj create_and_write(const std::string &path,
+                                  std::vector<uint8_t> buf);
 
-    uint64_t read_uint64(uint64_t offset);
-    uint32_t read_uint32(uint64_t offset);
-    uint16_t read_uint16(uint64_t offset);
+  // 打开文件对象
+  static FileObj open(const std::string &path, bool create);
 
-    bool append(std::vector<uint8_t> buf);
+  // 读取并返回切片
+  std::vector<uint8_t> read_to_slice(size_t offset, size_t length);
 
-    bool sync();
+  // 读取 uint8_t
+  uint8_t read_uint8(uint64_t offset);
 
-    void del_file();
+  // 读取 uint16_t
+  uint16_t read_uint16(uint64_t offset);
+
+  // 读取 uint32_t
+  uint32_t read_uint32(uint64_t offset);
+
+  // 读取 uint64_t
+  uint64_t read_uint64(uint64_t offset);
+
+  bool write_uint64(uint64_t offset, const uint64_t &val);
+  bool write_uint32(uint64_t offset, const uint32_t &val);
+  bool write_uint16(uint64_t offset, const uint16_t &val);
+
+  // 写入到文件
+  bool write(uint64_t offset, std::vector<uint8_t> &buf);
+
+  // 追加写入到文件
+  bool append(std::vector<uint8_t> &buf);
+
+  bool sync();
 };

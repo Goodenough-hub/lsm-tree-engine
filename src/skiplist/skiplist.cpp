@@ -9,7 +9,7 @@
 SkipList::SkipList(int max_level)
 {
   this->max_level = max_level;
-  this->head = std::make_shared<SkipListNode>("", "", max_level); // 创建头节点
+  this->head = std::make_shared<SkipListNode>("", "", max_level, 0); // 创建头节点
   this->current_level = 1;
 
   // 随机数
@@ -36,7 +36,7 @@ void SkipList::put(const std::string &key, const std::string &value, uint64_t tr
   //     throw std::runtime_error("value cannot be empty"); // 值为空，抛出异常
   //   }
   int new_level = std::max(random_level(), current_level);
-  auto new_node = std::make_shared<SkipListNode>(key, value, new_level);
+  auto new_node = std::make_shared<SkipListNode>(key, value, new_level, tranc_id);
 
   //   标记当前的节点
   //   初始化当前节点为头节点 head，用于遍历跳表
@@ -68,7 +68,7 @@ void SkipList::put(const std::string &key, const std::string &value, uint64_t tr
   }
 
   //   value不存在则需要创建
-  int new_level = std::max(random_level(), current_level);
+  // int new_level = std::max(random_level(), current_level);
   for (int i = current_level; i < new_level; ++i)
   {
     update[i] = head;
@@ -214,7 +214,7 @@ SkipListIterator SkipList::get(const std::string &key, uint64_t tranc_id)
 
 void SkipList::clear()
 {
-  head = std::make_shared<SkipListNode>("", "", max_level);
+  head = std::make_shared<SkipListNode>("", "", max_level, 0);
   size_bytes = 0;
 }
 

@@ -64,7 +64,7 @@ public:
 
     std::shared_ptr<Block> get(int sst_id, int block_id);
     void put(int sst_id, int block_id, std::shared_ptr<Block> block);
-
+    
     void update_access_count(std::list<CacheItem>::iterator it);
     double hit_rate(); // 获取缓存命中率
 };

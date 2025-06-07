@@ -123,12 +123,12 @@ private:
         case OPS::GET:
         {
             // return this->redis_.get(args);
-            return get_handle(args, this->redis_);
+            return get_handler(args, this->redis_);
         }
         case OPS::SET:
         {
             // return this->redis_.set(args);
-            return set_hander(args, this->redis_);
+            return set_handler(args, this->redis_);
         }
         case OPS::EXPIRE:
         {

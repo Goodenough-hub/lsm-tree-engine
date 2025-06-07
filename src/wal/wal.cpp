@@ -3,6 +3,8 @@
 #include <mutex>
 #include <string>
 #include <vector>
+#include <fstream>
+#include <filesystem>
 
 Wal::Wal(const std::string &log_dir, size_t buffer_size,
          uint64_t max_finished_tranc_id, size_t file_size_limit,

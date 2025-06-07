@@ -78,8 +78,8 @@ private:
 
 public:
     SkipList(int max_level = 16); // 默认的最大层数为16
-    void put(const std::string &key, const std::string &value, uint64_t tranc_id);
-    SkipListIterator get(const std::string &key, uint64_t tranc_id);
+    void put(const std::string &key, const std::string &value, uint64_t tranc_id = 0);
+    SkipListIterator get(const std::string &key, uint64_t tranc_id = 0);
     void remove(const std::string &key);
     void clear();
 

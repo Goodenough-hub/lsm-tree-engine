@@ -71,7 +71,7 @@ private:
 public:
     std::shared_ptr<BloomFilter> bloom_filter;
     SSTBuilder(size_t block_size, bool with_bloom);
-    void add(const std::string &key, const std::string &value, uint64_t tranc_id);
+    void add(const std::string &key, const std::string &value, uint64_t tranc_id = 0);
     size_t estimated_size() const;
     void finish_block(); // 当前block被写满，然后清空进行下一个block的编码
     std::shared_ptr<SST> build(size_t sst_id, const std::string &path, std::shared_ptr<BlockCache> block_cache);
