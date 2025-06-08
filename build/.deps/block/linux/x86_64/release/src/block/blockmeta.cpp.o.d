@@ -1,6 +1,10 @@
 {
+    files = {
+        "src/block/blockmeta.cpp"
+    },
     depfiles = "blockmeta.o: src/block/blockmeta.cpp  src/block/../../include/block/blockmeta.h\
 ",
+    depfiles_format = "gcc",
     values = {
         "/usr/bin/gcc",
         {
@@ -12,9 +16,5 @@
             "-Iinclude",
             "-DNDEBUG"
         }
-    },
-    files = {
-        "src/block/blockmeta.cpp"
-    },
-    depfiles_format = "gcc"
+    }
 }

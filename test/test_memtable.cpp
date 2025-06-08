@@ -5,33 +5,33 @@ TEST(MemtableTest, BasicOperations)
 {
   Memtable memtable;
 
-  memtable.put("key1", "value1");
-  EXPECT_EQ(memtable.get("key1").value(), "value1");
+  memtable.put("key1", "value1", 0);
+  EXPECT_EQ(memtable.get("key1", 0).get_value(), "value1");
 
-  memtable.put("key1", "value2");
-  EXPECT_EQ(memtable.get("key1").value(), "value2");
+  memtable.put("key1", "value2", 0);
+  EXPECT_EQ(memtable.get("key1", 0).get_value(), "value2");
 
-  memtable.remove("key1");
-  EXPECT_EQ(memtable.get("key1").value(), "");
+  memtable.remove("key1", 0);
+  EXPECT_EQ(memtable.get("key1", 0).get_value(), "");
 }
 
 TEST(MemTableTest, FrozenTableOperations)
 {
   Memtable memtable;
 
-  memtable.put("key1", "value1");
-  memtable.put("key2", "value2");
+  memtable.put("key1", "value1", 0);
+  memtable.put("key2", "value2", 0);
 
   memtable.frozen_cur_table();
-  memtable.put("key3", "value3");
-  memtable.put("key2", "value22");
+  memtable.put("key3", "value3", 0);
+  memtable.put("key2", "value22", 0);
 
-  auto res = memtable.get("key1").value();
+  auto res = memtable.get("key1", 0).get_value();
   EXPECT_EQ(res, "value1");
-  res = memtable.get("key2").value();
-  EXPECT_EQ(memtable.get("key2").value(), "value22");
-  res = memtable.get("key3").value();
-  EXPECT_EQ(memtable.get("key3").value(), "value3");
+  res = memtable.get("key2", 0).get_value();
+  EXPECT_EQ(memtable.get("key2", 0).get_value(), "value22");
+  res = memtable.get("key3", 0).get_value();
+  EXPECT_EQ(memtable.get("key3", 0).get_value(), "value3");
 }
 
 TEST(MemTableTest, LargeScaleOperations)
@@ -43,14 +43,14 @@ TEST(MemTableTest, LargeScaleOperations)
   {
     std::string key = "key" + std::to_string(i);
     std::string value = "value" + std::to_string(i);
-    memtable.put(key, value);
+    memtable.put(key, value, 0);
   }
 
   for (int i = 0; i < num_entries; i++)
   {
     std::string key = "key" + std::to_string(i);
     std::string value = "value" + std::to_string(i);
-    EXPECT_EQ(memtable.get(key).value(), value);
+    EXPECT_EQ(memtable.get(key, 0).get_value(), value);
   }
 }
 
@@ -58,12 +58,12 @@ TEST(MemTableTest, IteratorComplexOperations)
 {
   Memtable memtable;
 
-  memtable.put("key1", "value1");
-  memtable.put("key2", "value2");
-  memtable.put("key3", "value3");
+  memtable.put("key1", "value1", 0);
+  memtable.put("key2", "value2", 0);
+  memtable.put("key3", "value3", 0);
 
   std::vector<std::pair<std::string, std::string>> results;
-  for (auto it = memtable.begin(); it != memtable.end(); ++it)
+  for (auto it = memtable.begin(0); it != memtable.end(0); ++it)
   {
     results.push_back(*it);
   }
@@ -75,12 +75,12 @@ TEST(MemTableTest, IteratorComplexOperations)
 
   memtable.frozen_cur_table();
 
-  memtable.put("key2", "value2_updated");
-  memtable.remove("key1");
-  memtable.put("key4", "value4");
+  memtable.put("key2", "value2_updated", 0);
+  memtable.remove("key1", 0);
+  memtable.put("key4", "value4", 0);
 
   std::vector<std::pair<std::string, std::string>> results2;
-  for (auto it = memtable.begin(); it != memtable.end(); ++it)
+  for (auto it = memtable.begin(0); it != memtable.end(0); ++it)
   {
     results2.push_back(*it);
   }
@@ -127,7 +127,7 @@ TEST(MemTableTest, ConcurrentOperations)
       if (i % 3 == 0)
       {
         // 插入操作
-        memtable.put(key, value);
+        memtable.put(key, value, 0);
         {
           std::lock_guard<std::mutex> lock(keys_mutex);
           inserted_keys.push_back(key);
@@ -136,12 +136,12 @@ TEST(MemTableTest, ConcurrentOperations)
       else if (i % 3 == 1)
       {
         // 删除操作
-        memtable.remove(key);
+        memtable.remove(key, 0);
       }
       else
       {
         // 更新操作
-        memtable.put(key, value + "_updated");
+        memtable.put(key, value + "_updated", 0);
       }
 
       std::this_thread::sleep_for(std::chrono::microseconds(rand() % 100));
@@ -173,8 +173,8 @@ TEST(MemTableTest, ConcurrentOperations)
 
       if (!key_to_find.empty())
       {
-        auto result = memtable.get(key_to_find);
-        if (result.has_value())
+        auto result = memtable.get(key_to_find, 0);
+        if (result.is_valid())
         {
           found_count++;
         }
@@ -184,7 +184,7 @@ TEST(MemTableTest, ConcurrentOperations)
       if (i % 100 == 0)
       {
         std::vector<std::pair<std::string, std::string>> items;
-        for (auto it = memtable.begin(); it != memtable.end(); ++it)
+        for (auto it = memtable.begin(0); it != memtable.end(0); ++it)
         {
           items.push_back(*it);
         }
@@ -272,7 +272,7 @@ TEST(MemTableTest, ConcurrentOperations)
 
   // 验证最终状态
   size_t final_size = 0;
-  for (auto it = memtable.begin(); it != memtable.end(); ++it)
+  for (auto it = memtable.begin(0); it != memtable.end(0); ++it)
   {
     final_size++;
   }

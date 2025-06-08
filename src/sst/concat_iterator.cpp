@@ -51,3 +51,7 @@ bool ConcatIterator::is_end() const {
 bool ConcatIterator::is_valid() const {
   return cur_iter.is_valid() && cur_idx < ssts_.size();
 }
+
+uint64_t ConcatIterator::get_tranc_id() const { 
+  return max_tranc_id_; 
+}

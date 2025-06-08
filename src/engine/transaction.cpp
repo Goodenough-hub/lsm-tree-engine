@@ -218,6 +218,15 @@ TranManager::TranManager(std::string data_dir,
     }
 }
 
+TranManager::~TranManager()
+{
+    write_tranc_id_file();
+}
+
+void TranManager::TranManager::set_engine(std::shared_ptr<LSMEngine> engine) {
+  engine_ = std::move(engine);
+}
+
 std::string TranManager::get_tranc_id_file_path()
 {
     if (!data_dir_.empty())

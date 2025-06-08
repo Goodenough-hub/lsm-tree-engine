@@ -1,0 +1,33 @@
+{
+    files = {
+        "build/.objs/lsm_shared/linux/x86_64/release/src/memtable/memtable.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/block/blockmeta.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/block/block_iterator.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/block/block_cache.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/block/block.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/skiplist/skiplist.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/sst/sst_iterator.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/sst/sst.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/sst/concat_iterator.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/iterator/iterator.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/wal/record.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/wal/wal.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/engine/two_merge_iterator.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/engine/engine.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/engine/transaction.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/redis_wrapper/redis_wrapper.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/utils/mmap_file.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/utils/bloom_filter.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/utils/std_file.cpp.o",
+        "build/.objs/lsm_shared/linux/x86_64/release/src/utils/file.cpp.o"
+    },
+    values = {
+        "/usr/bin/g++",
+        {
+            "-shared",
+            "-m64",
+            "-fPIC",
+            "-s"
+        }
+    }
+}

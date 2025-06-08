@@ -256,6 +256,8 @@ BaseIterator &SkipListIterator::operator++()
   return *this;
 }
 
+SkipListIterator::~SkipListIterator() = default;
+
 // SkipListIterator SkipListIterator::operator++(int)
 // {
 //   SkipListIterator temp = *this;

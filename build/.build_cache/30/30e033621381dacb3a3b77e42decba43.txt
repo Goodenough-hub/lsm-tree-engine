@@ -1,0 +1,14 @@
+{
+    errdata = "\27[01m\27[Ksrc/sst/sst.cpp:\27[m\27[K In member function ‘\27[01m\27[Ksize_t SST::find_block_idx(const string&)\27[m\27[K’:\
+\27[01m\27[Ksrc/sst/sst.cpp:279:58:\27[m\27[K \27[01;35m\27[Kwarning: \27[m\27[K‘\27[01m\27[Kthis\27[m\27[K’ pointer is null [\27[01;35m\27[K-Wnonnull\27[m\27[K]\
+  279 |     if (!bloom_filter && !\27[01;35m\27[Kbloom_filter->possibly_contains(key)\27[m\27[K)\
+      |                           \27[01;35m\27[K~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~\27[m\27[K\
+In file included from \27[01m\27[Ksrc/sst/../../include/sst/sst.h:6\27[m\27[K,\
+                 from \27[01m\27[Ksrc/sst/sst.cpp:1\27[m\27[K:\
+\27[01m\27[Ksrc/sst/../../include/sst/../utils/bloom_filter.h:35:10:\27[m\27[K \27[01;36m\27[Knote: \27[m\27[Kin a call to non-static member function ‘\27[01m\27[Kbool BloomFilter::possibly_contains(const string&) const\27[m\27[K’\
+   35 |     bool \27[01;36m\27[Kpossibly_contains\27[m\27[K(const std::string &key) const; // 判断布隆过滤器中是否存在某个元素\
+      |          \27[01;36m\27[K^~~~~~~~~~~~~~~~~\27[m\27[K\
+At global scope:\
+\27[01m\27[Kcc1plus:\27[m\27[K \27[01;36m\27[Knote: \27[m\27[Kunrecognized command-line option ‘\27[01m\27[K-Wno-gnu-line-marker\27[m\27[K’ may have been intended to silence earlier diagnostics\
+"
+}

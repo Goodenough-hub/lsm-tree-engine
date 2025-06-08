@@ -1,6 +1,7 @@
 #include "../../include/engine/engine.h"
 #include "../../include/const.h"
 #include "../../include/sst/concat_iterator.h"
+#include "../../include/sst/sst_iterator.h"
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
@@ -20,7 +21,7 @@ std::optional<std::pair<TwoMergeIterator, TwoMergeIterator>> LSMEngine::iter_mon
     // 遍历所有的SST文件，sst_id越小表示文件越旧
     for (auto &[sst_idx, sst] : ssts) // 结构化绑定分解SST索引和对象
     {
-        auto result = sst_iters_monotony_predicate(sst, tranc_id, predicate); // 在单个SST中查询
+        auto result = sst_iters_monotony_predicate(tranc_id, sst, predicate); // 在单个SST中查询
         if (!result.has_value())                                              // 没有符合条件的结果则跳过
         {
             continue;
@@ -335,6 +336,28 @@ LSMEngine::full_lx_ly_compact(const std::vector<size_t> &lx_ids,
     TwoMergeIterator it_begin(old_lx_begin_ptr, old_ly_begin_ptr, 0);
 
     return gen_ssts_from_iter(it_begin, get_sst_size(y_level), 1);
+}
+
+void LSMEngine::clear() {
+  memtable.clear();
+  level_sst_ids.clear();
+  ssts.clear();
+  // 清空当前文件夹的所有内容
+//   try {
+//     for (const auto &entry : std::filesystem::directory_iterator(data_dir)) {
+//       if (!entry.is_regular_file()) {
+//         continue;
+//       }
+//       std::filesystem::remove(entry.path());
+
+//       spdlog::info("LSMEngine--"
+//                    "clear file {} successfully.",
+//                    entry.path().string());
+//     }
+//   } catch (const std::filesystem::filesystem_error &e) {
+//     // 处理文件系统错误
+//     spdlog::error("Error clearing directory: {}", e.what());
+//   }
 }
   
 std::vector<std::shared_ptr<SST>>

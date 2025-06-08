@@ -103,6 +103,7 @@ private:
 
 public:
     SkipListIterator(std::shared_ptr<SkipListNode> node) : current(node) {};
+    virtual ~SkipListIterator(); // 声明虚析构函数
 
     BaseIterator &operator++() override; // 前置自增
     bool operator==(const BaseIterator &other) const override;

@@ -150,7 +150,7 @@ TEST_F(SSTTest, ReopenSST)
         std::make_shared<BlockCache>(LSM_BLOCK_CACHE_CAPACITY, LSM_BLOCK_CACHE_K);
 
     // 重新打开SST
-    FileObj file = FileObj::open("test_data/test.sst");
+    FileObj file = FileObj::open("test_data/test.sst", true);
     auto reopened_sst = SST::open(1, std::move(file), block_cache);
 
     // 验证数据一致性

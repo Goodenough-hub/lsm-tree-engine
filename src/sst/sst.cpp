@@ -45,6 +45,11 @@ void SSTBuilder::add(const std::string &key, const std::string &value, uint64_t 
     last_key = key;
 }
 
+size_t SSTBuilder::estimated_size() const
+{
+    return data.size();
+}
+
 void SSTBuilder::finish_block()
 {
     // 将block编码data中

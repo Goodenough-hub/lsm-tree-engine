@@ -15,7 +15,7 @@ class SstIterator;
 // 0: 满足条件
 // >0: 不满足谓词, 需要往右移动
 // <0: 不满足谓词, 需要往左移动
-std::optional<std::pair<SstIterator, SstIterator>> sst_iters_monotony_predicate(std::shared_ptr<SST> sst, uint64_t max_tranc_id, std::function<int(const std::string &)> predicate);
+std::optional<std::pair<SstIterator, SstIterator>> sst_iters_monotony_predicate(uint64_t max_tranc_id, std::shared_ptr<SST> sst, std::function<int(const std::string &)> predicate);
 
 class SstIterator : public BaseIterator
 {
